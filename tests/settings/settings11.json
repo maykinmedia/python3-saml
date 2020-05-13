@@ -13,6 +13,7 @@
         "NameIDFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"
     },
     "idp": {
+<<<<<<< HEAD
         "entityId": "http://idp.example.com/",
         "singleSignOnService": {
             "url": "http://idp.example.com/SSOService.php"

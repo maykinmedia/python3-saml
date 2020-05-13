@@ -621,39 +621,52 @@ class OneLogin_Saml2_Utils(object):
         else:
             return OneLogin_Saml2_XML.extract_tag_text(root, "saml:NameID")
 
-    @staticmethod
-    def get_status(dom):
+    @classmethod
+    def get_status(cls, dom):
         """
         Gets Status from a Response.
 
         :param dom: The Response as XML
         :type: Document
 
-        :returns: The Status, an array with the code and a message.
+        :returns: The Status, an array with the code and a message. 'code' entry is the
+                  topmost StatusCode, and 'codes' entry contains the StatusCodes in document
+                  order.
         :rtype: dict
         """
+        doc = OneLogin_Saml2_XML.query(dom, '/samlp:Response')
+        if len(doc) != 1:
+            raise OneLogin_Saml2_ValidationError(
+                'Missing Status on response',
+                OneLogin_Saml2_ValidationError.MISSING_STATUS
+            )
+
+        return cls.get_specific_status(doc[0])
+
+    @staticmethod
+    def get_specific_status(doc):
         status = {}
 
-        status_entry = OneLogin_Saml2_XML.query(dom, '/samlp:Response/samlp:Status')
+        status_entry = OneLogin_Saml2_XML.query(doc, './samlp:Status')
         if len(status_entry) != 1:
             raise OneLogin_Saml2_ValidationError(
                 'Missing Status on response',
                 OneLogin_Saml2_ValidationError.MISSING_STATUS
             )
 
-        code_entry = OneLogin_Saml2_XML.query(dom, '/samlp:Response/samlp:Status/samlp:StatusCode', status_entry[0])
-        if len(code_entry) != 1:
+        code_entries = OneLogin_Saml2_XML.query(doc, './/samlp:StatusCode', status_entry[0])
+        if not code_entries:
             raise OneLogin_Saml2_ValidationError(
                 'Missing Status Code on response',
                 OneLogin_Saml2_ValidationError.MISSING_STATUS_CODE
             )
-        code = code_entry[0].values()[0]
-        status['code'] = code
+        status['codes'] = [c.get('Value') for c in code_entries]
+        status['code'] = status['codes'][0]
 
         status['msg'] = ''
-        message_entry = OneLogin_Saml2_XML.query(dom, '/samlp:Response/samlp:Status/samlp:StatusMessage', status_entry[0])
+        message_entry = OneLogin_Saml2_XML.query(doc, './samlp:StatusMessage', status_entry[0])
         if len(message_entry) == 0:
-            subcode_entry = OneLogin_Saml2_XML.query(dom, '/samlp:Response/samlp:Status/samlp:StatusCode/samlp:StatusCode', status_entry[0])
+            subcode_entry = OneLogin_Saml2_XML.query(doc, './samlp:StatusCode/samlp:StatusCode', status_entry[0])
             if len(subcode_entry) == 1:
                 status['msg'] = subcode_entry[0].values()[0]
         elif len(message_entry) == 1:

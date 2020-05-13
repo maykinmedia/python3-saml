@@ -56,6 +56,7 @@ class OneLogin_Saml2_Constants(object):
     NS_PREFIX_XSD = 'xsd'
     NS_PREFIX_XENC = 'xenc'
     NS_PREFIX_DS = 'ds'
+    NS_PREFIX_SOAP = 'soap'
 
     # Prefix:Namespace Mappings
     NSMAP = {
@@ -63,7 +64,8 @@ class OneLogin_Saml2_Constants(object):
         NS_PREFIX_SAML: NS_SAML,
         NS_PREFIX_DS: NS_DS,
         NS_PREFIX_XENC: NS_XENC,
-        NS_PREFIX_MD: NS_MD
+        NS_PREFIX_MD: NS_MD,
+        NS_PREFIX_SOAP: NS_SOAP
     }
 
     # Bindings
@@ -94,6 +96,7 @@ class OneLogin_Saml2_Constants(object):
     STATUS_NO_PASSIVE = 'urn:oasis:names:tc:SAML:2.0:status:NoPassive'
     STATUS_PARTIAL_LOGOUT = 'urn:oasis:names:tc:SAML:2.0:status:PartialLogout'
     STATUS_PROXY_COUNT_EXCEEDED = 'urn:oasis:names:tc:SAML:2.0:status:ProxyCountExceeded'
+    STATUS_AUTHN_FAILED = 'urn:oasis:names:tc:SAML:2.0:status:AuthnFailed'
 
     # Sign & Crypto
     SHA1 = 'http://www.w3.org/2000/09/xmldsig#sha1'

@@ -11,10 +11,14 @@ Initializes the SP SAML instance
 
 """
 
+import logging
 import xmlsec
+
 
 from onelogin.saml2 import compat
 from onelogin.saml2.authn_request import OneLogin_Saml2_Authn_Request
+from onelogin.saml2.artifact_resolve import Artifact_Resolve_Request
+from onelogin.saml2.artifact_response import Artifact_Response
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from onelogin.saml2.logout_request import OneLogin_Saml2_Logout_Request
 from onelogin.saml2.logout_response import OneLogin_Saml2_Logout_Response
@@ -22,6 +26,9 @@ from onelogin.saml2.response import OneLogin_Saml2_Response
 from onelogin.saml2.settings import OneLogin_Saml2_Settings
 from onelogin.saml2.utils import OneLogin_Saml2_Utils, OneLogin_Saml2_Error, OneLogin_Saml2_ValidationError
 from onelogin.saml2.xmlparser import tostring
+
+
+logger = logging.getLogger(__name__)
 
 
 class OneLogin_Saml2_Auth(object):
@@ -113,6 +120,62 @@ class OneLogin_Saml2_Auth(object):
         self._last_response_in_response_to = response.get_in_response_to()
         self._last_assertion_not_on_or_after = response.get_assertion_not_on_or_after()
 
+    def artifact_resolve(self, saml_art):
+        """
+        Try to resolve the given artifact
+        """
+        logger.debug(
+            "Retrieved the SAMLArt %s via the ACS.", saml_art
+        )
+
+        resolve_request = Artifact_Resolve_Request(self.__settings, saml_art)
+        resolve_response = resolve_request.send()
+        if resolve_response.status_code != 200:
+            raise OneLogin_Saml2_ValidationError(
+                "Received a status code {status_code} when trying to resolve the given artifact {saml_art}".format(
+                    status_code=resolve_response.status_code, saml_art=saml_art
+                )
+            )
+
+        logger.debug(
+            "Retrieved a ArtifactResponse with content %s", resolve_response.content
+        )
+
+        artifact_response = Artifact_Response(self.__settings, resolve_response.content)
+        if not artifact_response.is_valid(resolve_request.get_id()):
+            raise OneLogin_Saml2_ValidationError(
+                "The ArtifactResponse could not be validated due to the following error: {error}".format(
+                    error=artifact_response.get_error()
+                )
+            )
+
+        saml2_response = OneLogin_Saml2_Response(self.__settings, artifact_response.get_response_xml())
+        try:
+            saml2_response.is_valid(self.__request_data, raise_exceptions=True)
+        except OneLogin_Saml2_ValidationError as e:
+            raise OneLogin_Saml2_ValidationError(
+                "The Response could not be validated due to the following error: {error}".format(
+                    error=saml2_response.get_error()
+                ), code=e.code
+            )
+
+        return saml2_response
+
+    def store_valid_response(self, response):
+        self.__attributes = response.get_attributes()
+        self.__friendlyname_attributes = response.get_friendlyname_attributes()
+        self.__nameid = response.get_nameid()
+        self.__nameid_format = response.get_nameid_format()
+        self.__nameid_nq = response.get_nameid_nq()
+        self.__nameid_spnq = response.get_nameid_spnq()
+        self.__session_index = response.get_session_index()
+        self.__session_expiration = response.get_session_not_on_or_after()
+        self.__last_message_id = response.get_id()
+        self.__last_assertion_id = response.get_assertion_id()
+        self.__last_authn_contexts = response.get_authn_contexts()
+        self.__authenticated = True
+        self.__last_assertion_not_on_or_after = response.get_assertion_not_on_or_after()
+
     def process_response(self, request_id=None):
         """
         Process the SAML Response sent by the IdP.
@@ -136,6 +199,14 @@ class OneLogin_Saml2_Auth(object):
                 self._errors.append('invalid_response')
                 self._error_reason = response.get_error()
 
+        elif 'get_data' in self._request_data and 'SAMLArt' in self._request_data['get_data']:
+            try:
+                response = self.artifact_resolve(self._request_data['get_data']['SAMLArt'])
+            except OneLogin_Saml2_ValidationError as e:
+                self._errors.append('invalid_response')
+                self._error_reason = str(e)
+            else:
+                self.store_valid_response(response)
         else:
             self._errors.append('invalid_binding')
             raise OneLogin_Saml2_Error(

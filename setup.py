@@ -42,6 +42,8 @@ setup(
         'lxml<4.7.1',
         'isodate>=0.6.1',
         'xmlsec>=1.3.9'
+        'defusedxml==0.6.0',
+        'requests>=2.24.0'
     ],
     dependency_links=['http://github.com/mehcode/python-xmlsec/tarball/master'],
     extras_require={
@@ -51,6 +53,8 @@ setup(
             'pylint==1.9.4',
             'flake8>=3.6.0',
             'pytest>=4.6',
+            'coveralls==1.5.1',
+            'responses>=0.12.0'
         ),
     },
     keywords='saml saml2 xmlsec django flask pyramid python3',
