@@ -191,7 +191,7 @@ class OneLogin_Saml2_Metadata(object):
         return metadata
 
     @staticmethod
-    def sign_metadata(metadata, key, cert, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA256, digest_algorithm=OneLogin_Saml2_Constants.SHA256):
+    def sign_metadata(metadata, key, cert, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA256, digest_algorithm=OneLogin_Saml2_Constants.SHA256, key_passphrase=None):
         """
         Signs the metadata with the key/cert provided
 
@@ -213,7 +213,7 @@ class OneLogin_Saml2_Metadata(object):
         :param digest_algorithm: Digest algorithm method
         :type digest_algorithm: string
         """
-        return OneLogin_Saml2_Utils.add_sign(metadata, key, cert, False, sign_algorithm, digest_algorithm)
+        return OneLogin_Saml2_Utils.add_sign(metadata, key, cert, False, sign_algorithm, digest_algorithm, key_passphrase=key_passphrase)
 
     @staticmethod
     def _add_x509_key_descriptors(root, cert, signing):
