@@ -105,6 +105,21 @@ class OneLogin_Saml2_Utils_Test(unittest.TestCase):
         self.assertNotIn('-----END RSA PRIVATE KEY-----', formated_key_3)
         self.assertEqual(len(formated_key_3), 848)
 
+        key_4 = "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAM62buSW9Zgh7CmZ\nouJekK0ac9sgEZkspemjv7SyE6Hbdz+KmUr3C7MI6JuPfVyJbxvMDf3FbgBBK7r5\nyfGgehXwplLMZj8glvV3NkdLMLPWmaw9U5sOzRoym46pVvsEo1PUL2qDK5Wrsm1g\nuY1KIDSHL59NQ7PzDKgm1dxioeXFAgMBAAECgYA/fvRzTReloo3rfWD2Tfv84EpE\nPgaJ2ZghO4Zwl97F8icgIo/R4i760Lq6xgnI+gJiNHz7vcB7XYl0RrRMf3HgbA7z\npJxREmOVltESDHy6lH0TmCdv9xMmHltB+pbGOhqBvuGgFbEOR73lDDV0ln2rEITJ\nA2zjYF+hWe8b0JFeQQJBAOsIIIlHAMngjhCQDD6kla/vce972gCFU7ZeFw16ZMmb\n8W4rGRfQoQWYxSLAFIFsYewSBTccanyYbBNe3njki3ECQQDhJ4cgV6VpTwez4dkp\nU/xCHKoReedAEJhXucTNGpiIqu+TDgIz9aRbrgnUKkS1s06UJhcDRTl/+pCSRRt/\nCA2VAkBkPw4pn1hNwvK1S8t9OJQD+5xcKjZcvIFtKoqonAi7GUGL3OQSDVFw4q1K\n2iSk40aM+06wJ/WfeR+3z2ISrGBxAkAJ20YiF1QpcQlASbHNCl0vs7uKOlDyUAer\nR3mjFPf6e6kzQdi815MTZGIPxK3vWmMlPymgvgYPYTO1A4t5myulAkEA1QioAWcJ\noO26qhUlFRBCR8BMJoVPImV7ndVHE7usHdJvP7V2P9RyuRcMCTVul8RRmyoh/+yG\n4ghMaHo/v0YY5Q==\n-----END ENCRYPTED PRIVATE KEY-----\n"
+        formated_key_4 = OneLogin_Saml2_Utils.format_private_key(key_4, True)
+        self.assertIn('-----BEGIN ENCRYPTED PRIVATE KEY-----', formated_key_4)
+        self.assertIn('-----END ENCRYPTED PRIVATE KEY-----', formated_key_4)
+        self.assertEqual(len(formated_key_4), 936)
+
+        formated_key_4 = OneLogin_Saml2_Utils.format_private_key(key_4, False)
+
+        self.assertNotIn('-----BEGIN ENCRYPTED PRIVATE KEY-----', formated_key_4)
+        self.assertNotIn('-----END ENCRYPTED PRIVATE KEY-----', formated_key_4)
+        self.assertNotIn('-----BEGIN PRIVATE KEY-----', formated_key_4)
+        self.assertNotIn('-----END PRIVATE KEY-----', formated_key_4)
+        self.assertNotIn('-----BEGIN RSA PRIVATE KEY-----', formated_key_4)
+        self.assertNotIn('-----END RSA PRIVATE KEY-----', formated_key_4)
+
     def testRedirect(self):
         """
         Tests the redirect method of the OneLogin_Saml2_Utils

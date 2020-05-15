@@ -112,6 +112,7 @@ class OneLogin_Saml2_ValidationError(Exception):
     AUTHN_CONTEXT_MISMATCH = 45
     DEPRECATED_SIGNATURE_METHOD = 46
     DEPRECATED_DIGEST_METHOD = 47
+    STATUS_CODE_AUTHNFAILED = 48
 
     def __init__(self, message, code=0, errors=None):
         """
@@ -121,7 +122,6 @@ class OneLogin_Saml2_ValidationError(Exception):
             * (int)   code.      The code error (defined in the error class).
         """
         assert isinstance(code, int)
-
         if errors is not None:
             message = message % errors
 
