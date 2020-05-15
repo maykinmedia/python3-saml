@@ -571,6 +571,9 @@ class OneLogin_Saml2_Settings(object):
 
         return key or None
 
+    def get_sp_key_passphrase(self):
+        return self.__sp.get('privateKeyPassphrase', None)
+
     def get_sp_cert(self):
         """
         Returns the x509 public cert of the SP.
@@ -734,7 +737,7 @@ class OneLogin_Saml2_Settings(object):
             signature_algorithm = self._security['signatureAlgorithm']
             digest_algorithm = self._security['digestAlgorithm']
 
-            metadata = self.metadata_class.sign_metadata(metadata, key_metadata, cert_metadata, signature_algorithm, digest_algorithm)
+            metadata = OneLogin_Saml2_Metadata.sign_metadata(metadata, key_metadata, cert_metadata, signature_algorithm, digest_algorithm, key_passphrase=self.get_sp_key_passphrase())
 
         return metadata
 
