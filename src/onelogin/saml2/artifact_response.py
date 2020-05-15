@@ -1,5 +1,6 @@
 from base64 import b64encode
-
+from defusedxml.lxml import tostring
+from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from onelogin.saml2.utils import (OneLogin_Saml2_Utils,
                                   OneLogin_Saml2_ValidationError)
 from onelogin.saml2.xml_utils import OneLogin_Saml2_XML
@@ -23,12 +24,12 @@ class Artifact_Response:
 
     def get_issuer(self):
         """
-        Gets the Issuer of the Logout Response Message
+        Gets the Issuer of the Artifact Response
         :return: The Issuer
         :rtype: string
         """
         issuer = None
-        issuer_nodes = self.__query('/samlp:ArtifactResponse/saml:Issuer')
+        issuer_nodes = self.__query('//samlp:ArtifactResponse/saml:Issuer')
         if len(issuer_nodes) == 1:
             issuer = OneLogin_Saml2_XML.element_text(issuer_nodes[0])
         return issuer
@@ -39,11 +40,39 @@ class Artifact_Response:
         :return: The Status
         :rtype: string
         """
-        entries = self.__query('/samlp:ArtifactResponse/samlp:Status/samlp:StatusCode')
+        entries = self.__query('//samlp:ArtifactResponse/samlp:Status/samlp:StatusCode')
         if len(entries) == 0:
             return None
         status = entries[0].attrib['Value']
         return status
+
+    def check_status(self):
+        """
+        Check if the status of the response is success or not
+
+        :raises: Exception. If the status is not success
+        """
+        doc = OneLogin_Saml2_XML.query(self.document, '//samlp:ArtifactResponse')
+        if len(doc) != 1:
+            raise OneLogin_Saml2_ValidationError(
+                'Missing Status on response',
+                OneLogin_Saml2_ValidationError.MISSING_STATUS
+            )
+        status = OneLogin_Saml2_Utils.get_specific_status(
+            doc[0],
+        )
+        code = status.get('code', None)
+        if code and code != OneLogin_Saml2_Constants.STATUS_SUCCESS:
+            splited_code = code.split(':')
+            printable_code = splited_code.pop()
+            status_exception_msg = 'The status code of the ArtifactResponse was not Success, was %s' % printable_code
+            status_msg = status.get('msg', None)
+            if status_msg:
+                status_exception_msg += ' -> ' + status_msg
+            raise OneLogin_Saml2_ValidationError(
+                status_exception_msg,
+                OneLogin_Saml2_ValidationError.STATUS_CODE_IS_NOT_SUCCESS
+            )
 
     def is_valid(self, request_id, raise_exceptions=False):
         """
@@ -63,10 +92,10 @@ class Artifact_Response:
             idp_entity_id = idp_data['entityId']
 
             if self.__settings.is_strict():
-                res = OneLogin_Saml2_XML.validate_xml(self.document, 'saml-schema-protocol-2.0.xsd', self.__settings.is_debug_active())
+                res = OneLogin_Saml2_XML.validate_xml(self.document, 'access_control-xacml-2.0-saml-assertion-schema-os.xsd', self.__settings.is_debug_active())
                 if isinstance(res, str):
                     raise OneLogin_Saml2_ValidationError(
-                        'Invalid SAML ArtifactResponse. Not match the saml-schema-protocol-2.0.xsd',
+                        'Invalid SAML ArtifactResponse. Not match the access_control-xacml-2.0-saml-assertion-schema-os.xsd',
                         OneLogin_Saml2_ValidationError.INVALID_XML_FORMAT
                     )
 
@@ -80,6 +109,8 @@ class Artifact_Response:
                         OneLogin_Saml2_ValidationError.WRONG_INRESPONSETO
                     )
 
+                self.check_status()
+
                 # Check issuer
                 issuer = self.get_issuer()
                 if issuer is not None and issuer != idp_entity_id:
@@ -91,7 +122,11 @@ class Artifact_Response:
                         },
                         OneLogin_Saml2_ValidationError.WRONG_ISSUER
                     )
-
+                status = self.get_status()
+                if status != 'urn:oasis:names:tc:SAML:2.0:status:Success':
+                    raise OneLogin_Saml2_ValidationError(
+                        OneLogin_Saml2_ValidationError.STATUS_CODE_IS_NOT_SUCCESS
+                    )
             return True
         # pylint: disable=R0801
         except Exception as err:
@@ -115,8 +150,8 @@ class Artifact_Response:
 
     def get_in_response_to(self):
         """
-        Gets the ID of the LogoutRequest which this response is in response to
-        :returns: ID of LogoutRequest this LogoutResponse is in response to or None if it is not present
+        Gets the ID of the ArtifactResolve which this response is in response to
+        :returns: ID of ArtifactResolve this LogoutResponse is in response to or None if it is not present
         :rtype: str
         """
         return self.document.get('InResponseTo')
@@ -137,8 +172,12 @@ class Artifact_Response:
         return self.__artifact_response
 
     def get_response_xml(self):
+        """
+        The response is base64 encoded to make it possible to feed
+        it to the OneLogin_Saml2_Response class.
+        """
         return b64encode(
-            OneLogin_Saml2_XML.to_string(
+            tostring(
                 self.__query('//samlp:ArtifactResponse/samlp:Response')[0]
             )
         )
