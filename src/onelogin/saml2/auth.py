@@ -11,8 +11,10 @@ Initializes the SP SAML instance
 
 """
 
+import logging
 import xmlsec
 from defusedxml.lxml import tostring
+
 
 from onelogin.saml2 import compat
 from onelogin.saml2.settings import OneLogin_Saml2_Settings
@@ -24,6 +26,9 @@ from onelogin.saml2.logout_request import OneLogin_Saml2_Logout_Request
 from onelogin.saml2.authn_request import OneLogin_Saml2_Authn_Request
 from onelogin.saml2.artifact_resolve import Artifact_Resolve_Request
 from onelogin.saml2.artifact_response import Artifact_Response
+
+
+logger = logging.getLogger(__name__)
 
 
 class OneLogin_Saml2_Auth(object):
@@ -96,6 +101,10 @@ class OneLogin_Saml2_Auth(object):
 
         TODO: should be integrated into the process_response method.
         """
+        logger.debug(
+            "Retrieved the SAMLArt %s via the ACS.", saml_art
+        )
+
         resolve_request = Artifact_Resolve_Request(self.__settings, saml_art)
         resolve_response = resolve_request.send()
         if resolve_response.status_code != 200:
@@ -104,6 +113,10 @@ class OneLogin_Saml2_Auth(object):
                     status_code=resolve_response.status_code, saml_art=saml_art
                 )
             )
+
+        logger.debug(
+            "Retrieved a ArtifactResponse with content %s", resolve_response.content
+        )
 
         artifact_response = Artifact_Response(self.__settings, resolve_response.content)
         if not artifact_response.is_valid(resolve_request.get_id()):
