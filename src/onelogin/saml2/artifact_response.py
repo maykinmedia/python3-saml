@@ -63,10 +63,10 @@ class Artifact_Response:
             idp_entity_id = idp_data['entityId']
 
             if self.__settings.is_strict():
-                res = OneLogin_Saml2_XML.validate_xml(self.document, 'saml-schema-protocol-2.0.xsd', self.__settings.is_debug_active())
+                res = OneLogin_Saml2_XML.validate_xml(self.document, 'access_control-xacml-2.0-saml-protocol-schema-os.xsd', self.__settings.is_debug_active())
                 if isinstance(res, str):
                     raise OneLogin_Saml2_ValidationError(
-                        'Invalid SAML ArtifactResponse. Not match the saml-schema-protocol-2.0.xsd',
+                        'Invalid SAML ArtifactResponse. Not match the access_control-xacml-2.0-saml-assertion-schema-os.xsd',
                         OneLogin_Saml2_ValidationError.INVALID_XML_FORMAT
                     )
 
