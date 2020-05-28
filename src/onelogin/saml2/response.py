@@ -625,8 +625,8 @@ class OneLogin_Saml2_Response(object):
         :returns: True if only 1 assertion encrypted or not
         :rtype: bool
         """
-        encrypted_assertion_nodes = OneLogin_Saml2_XML.query(self.document, '//saml:EncryptedAssertion')
-        assertion_nodes = OneLogin_Saml2_XML.query(self.document, '//saml:Assertion')
+        encrypted_assertion_nodes = OneLogin_Saml2_XML.query(self.document, '/samlp:Response/saml:EncryptedAssertion')
+        assertion_nodes = OneLogin_Saml2_XML.query(self.document, '/samlp:Response/saml:Assertion')
 
         valid = len(encrypted_assertion_nodes) + len(assertion_nodes) == 1
 
