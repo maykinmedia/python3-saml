@@ -53,6 +53,7 @@ setup(
             'pylint==1.9.4',
             'flake8>=3.6.0',
             'pytest>=4.6',
+            'responses>=0.12.0'
         ),
     },
     keywords='saml saml2 xmlsec django flask pyramid python3',
