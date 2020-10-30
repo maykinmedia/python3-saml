@@ -53,6 +53,7 @@ setup(
             'flake8>=3.6.0',
             'coveralls>=1.11.1',
             'pytest>=4.6',
+            'responses>=0.12.0'
         ),
     },
     keywords='saml saml2 xmlsec django flask pyramid python3',
