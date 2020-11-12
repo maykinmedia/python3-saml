@@ -7,6 +7,7 @@ from hashlib import sha1
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
 from onelogin.saml2.xml_templates import OneLogin_Saml2_Templates
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
+from onelogin.saml2.ssl_adapter import SSLAdapter
 
 from .errors import OneLogin_Saml2_ValidationError
 
@@ -98,12 +99,16 @@ class Artifact_Resolve_Request:
             "Doing a ArtifactResolve (POST) request to %s with data %s",
             url, data
         )
-        return requests.post(
+        session = requests.session()
+        ssl_adapter = SSLAdapter(
+            security_data['soapClientCert'],
+            security_data['soapClientKey'],
+            security_data.get('soapClientPassphrase', None),
+        )
+        session.mount(url, ssl_adapter)
+
+        return session.post(
             url=url,
-            cert=(
-                security_data['soapClientCert'],
-                security_data['soapClientKey'],
-            ),
             data=data,
             headers=headers,
         )
