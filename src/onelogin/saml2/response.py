@@ -450,7 +450,10 @@ class OneLogin_Saml2_Response(object):
         if encrypted_id_data_nodes:
             encrypted_data = encrypted_id_data_nodes[0]
             key = self.__settings.get_sp_key()
-            nameid = OneLogin_Saml2_Utils.decrypt_element(encrypted_data, key)
+            nameid = OneLogin_Saml2_Utils.decrypt_element(
+                encrypted_data, key,
+                key_passphrase=self.__settings.get_sp_key_passphrase(),
+            )
         else:
             nameid_nodes = self.__query_assertion('/saml:Subject/saml:NameID')
             if nameid_nodes:
@@ -604,7 +607,10 @@ class OneLogin_Saml2_Response(object):
                     self.__prepare_keyinfo(encrypted_id)
                     encrypted_data = encrypted_id.getchildren()[0]
 
-                    nameid = OneLogin_Saml2_Utils.decrypt_element(encrypted_data, key)
+                    nameid = OneLogin_Saml2_Utils.decrypt_element(
+                        encrypted_data, key,
+                        key_passphrase=self.__settings.get_sp_key_passphrase(),
+                    )
                     values.append({
                         'NameID': {
                             'Format': nameid.get('Format'),
@@ -890,7 +896,11 @@ class OneLogin_Saml2_Response(object):
                 encrypted_data = encrypted_data_nodes[0]
                 self.__prepare_keyinfo(encrypted_data.getparent())
 
-                decrypted = OneLogin_Saml2_Utils.decrypt_element(encrypted_data, key, debug=debug, inplace=True)
+                decrypted = OneLogin_Saml2_Utils.decrypt_element(
+                    encrypted_data, key,
+                    key_passphrase=self.__settings.get_sp_key_passphrase(),
+                    debug=debug, inplace=True,
+                )
                 xml.replace(encrypted_assertion_nodes[0], decrypted)
         return xml
 

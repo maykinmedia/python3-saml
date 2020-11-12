@@ -521,6 +521,9 @@ class OneLogin_Saml2_Settings(object):
 
         return key or None
 
+    def get_sp_key_passphrase(self):
+        return self.__sp.get('privateKeyPassphrase', None)
+
     def get_sp_cert(self):
         """
         Returns the x509 public cert of the SP.

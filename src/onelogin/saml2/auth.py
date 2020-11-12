@@ -418,6 +418,7 @@ class OneLogin_Saml2_Auth(object):
             OneLogin_Saml2_Utils.add_sign(
                 data,
                 self.__settings.get_sp_key(), self.__settings.get_sp_cert(),
+                key_passphrase=self.__settings.get_sp_key_passphrase(),
                 sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA256,
                 digest_algorithm=OneLogin_Saml2_Constants.SHA256,),
 
@@ -639,7 +640,11 @@ class OneLogin_Saml2_Auth(object):
         }
         sign_algorithm_transform = sign_algorithm_transform_map.get(sign_algorithm, xmlsec.Transform.RSA_SHA1)
 
-        signature = OneLogin_Saml2_Utils.sign_binary(msg, key, sign_algorithm_transform, self.__settings.is_debug_active())
+        signature = OneLogin_Saml2_Utils.sign_binary(
+            msg, key,
+            key_passphrase=self.__settings.get_sp_key_passphrase(),
+            algorithm=sign_algorithm_transform, debug=self.__settings.is_debug_active(),
+        )
         data['Signature'] = OneLogin_Saml2_Utils.b64encode(signature)
         data['SigAlg'] = sign_algorithm
 

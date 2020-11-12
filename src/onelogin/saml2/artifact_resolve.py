@@ -85,6 +85,7 @@ class Artifact_Resolve_Request:
         return OneLogin_Saml2_Utils.add_sign(
             request,
             self.__settings.get_sp_key(), self.__settings.get_sp_cert(),
+            key_passphrase=self.__settings.get_sp_key_passphrase(),
             sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA256,
             digest_algorithm=OneLogin_Saml2_Constants.SHA256,
         )

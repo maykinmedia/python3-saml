@@ -686,7 +686,7 @@ class OneLogin_Saml2_Utils(object):
         return status
 
     @staticmethod
-    def decrypt_element(encrypted_data, key, debug=False, inplace=False):
+    def decrypt_element(encrypted_data, key, key_passphrase=None, debug=False, inplace=False):
         """
         Decrypts an encrypted element.
 
@@ -716,12 +716,12 @@ class OneLogin_Saml2_Utils(object):
         xmlsec.enable_debug_trace(debug)
         manager = xmlsec.KeysManager()
 
-        manager.add_key(xmlsec.Key.from_memory(key, xmlsec.KeyFormat.PEM, None))
+        manager.add_key(xmlsec.Key.from_memory(key, xmlsec.KeyFormat.PEM, key_passphrase))
         enc_ctx = xmlsec.EncryptionContext(manager)
         return enc_ctx.decrypt(encrypted_data)
 
     @staticmethod
-    def add_sign(xml, key, cert, debug=False, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA1, digest_algorithm=OneLogin_Saml2_Constants.SHA1):
+    def add_sign(xml, key, cert, debug=False, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA1, digest_algorithm=OneLogin_Saml2_Constants.SHA1, key_passphrase=None):
         """
         Adds signature key and senders certificate to an element (Message or
         Assertion).
@@ -803,7 +803,7 @@ class OneLogin_Saml2_Utils(object):
         xmlsec.template.add_x509_data(key_info)
 
         dsig_ctx = xmlsec.SignatureContext()
-        sign_key = xmlsec.Key.from_memory(key, xmlsec.KeyFormat.PEM, None)
+        sign_key = xmlsec.Key.from_memory(key, xmlsec.KeyFormat.PEM, key_passphrase)
         sign_key.load_cert_from_memory(cert, xmlsec.KeyFormat.PEM)
 
         dsig_ctx.key = sign_key
@@ -1007,7 +1007,7 @@ class OneLogin_Saml2_Utils(object):
         return True
 
     @staticmethod
-    def sign_binary(msg, key, algorithm=xmlsec.Transform.RSA_SHA1, debug=False):
+    def sign_binary(msg, key, algorithm=xmlsec.Transform.RSA_SHA1, debug=False, key_passphrase=None):
         """
         Sign binary message
 
@@ -1029,7 +1029,7 @@ class OneLogin_Saml2_Utils(object):
 
         xmlsec.enable_debug_trace(debug)
         dsig_ctx = xmlsec.SignatureContext()
-        dsig_ctx.key = xmlsec.Key.from_memory(key, xmlsec.KeyFormat.PEM, None)
+        dsig_ctx.key = xmlsec.Key.from_memory(key, xmlsec.KeyFormat.PEM, key_passphrase)
         return dsig_ctx.sign_binary(compat.to_bytes(msg), algorithm)
 
     @staticmethod
