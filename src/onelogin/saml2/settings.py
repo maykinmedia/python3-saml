@@ -687,7 +687,8 @@ class OneLogin_Saml2_Settings(object):
             signature_algorithm = self.__security['signatureAlgorithm']
             digest_algorithm = self.__security['digestAlgorithm']
 
-            metadata = OneLogin_Saml2_Metadata.sign_metadata(metadata, key_metadata, cert_metadata, signature_algorithm, digest_algorithm)
+
+            metadata = OneLogin_Saml2_Metadata.sign_metadata(metadata, key_metadata, cert_metadata, signature_algorithm, digest_algorithm, key_passphrase=self.get_sp_key_passphrase())
 
         return metadata
 
