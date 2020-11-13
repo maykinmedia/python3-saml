@@ -178,6 +178,12 @@ class OneLogin_Saml2_Utils(object):
                 private_key = private_key.replace(' ', '')
                 if heads:
                     private_key = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(wrap(private_key, 64)) + "\n-----END PRIVATE KEY-----\n"
+            elif private_key.find('-----BEGIN ENCRYPTED PRIVATE KEY-----') != -1:
+                private_key = private_key.replace('-----BEGIN ENCRYPTED PRIVATE KEY-----', '')
+                private_key = private_key.replace('-----END ENCRYPTED PRIVATE KEY-----', '')
+                private_key = private_key.replace(' ', '')
+                if heads:
+                    private_key = "-----BEGIN ENCRYPTED PRIVATE KEY-----\n" + "\n".join(wrap(private_key, 64)) + "\n-----END ENCRYPTED PRIVATE KEY-----\n"
             else:
                 private_key = private_key.replace('-----BEGIN RSA PRIVATE KEY-----', '')
                 private_key = private_key.replace('-----END RSA PRIVATE KEY-----', '')
