@@ -618,6 +618,7 @@ class OneLogin_Saml2_Auth_Test(unittest.TestCase):
 
     def testLoginPost(self):
         settings_info = self.loadSettingsJSON()
+        settings_info['security']['authnRequestsSigned'] = True
         request_data = self.get_request()
         auth = OneLogin_Saml2_Auth(self.get_request(), old_settings=settings_info)
 
@@ -635,6 +636,7 @@ class OneLogin_Saml2_Auth_Test(unittest.TestCase):
 
     def testLoginPostWithRelayState(self):
         settings_info = self.loadSettingsJSON()
+        settings_info['security']['authnRequestsSigned'] = True
         auth = OneLogin_Saml2_Auth(self.get_request(), old_settings=settings_info)
         relay_state = 'http://sp.example.com'
 
