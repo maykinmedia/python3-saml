@@ -566,8 +566,8 @@ class OneLogin_Saml2_Utils(object):
         formatted_fingerprint = fingerprint.replace(':', '')
         return formatted_fingerprint.lower()
 
-    @staticmethod
-    def generate_name_id(value, sp_nq, sp_format=None, cert=None, debug=False, nq=None):
+    @classmethod
+    def generate_name_id(cls, value, sp_nq, sp_format=None, cert=None, debug=False, nq=None):
         """
         Generates a nameID.
 
@@ -593,8 +593,7 @@ class OneLogin_Saml2_Utils(object):
         :type: string
         """
 
-        root = OneLogin_Saml2_XML.make_root("{%s}container" % OneLogin_Saml2_Constants.NS_SAML)
-        name_id = OneLogin_Saml2_XML.make_child(root, '{%s}NameID' % OneLogin_Saml2_Constants.NS_SAML)
+        name_id = OneLogin_Saml2_XML.make_root('{%s}NameID' % OneLogin_Saml2_Constants.NS_SAML)
         if sp_nq is not None:
             name_id.set('SPNameQualifier', sp_nq)
         if sp_format is not None:
@@ -604,27 +603,10 @@ class OneLogin_Saml2_Utils(object):
         name_id.text = value
 
         if cert is not None:
-            xmlsec.enable_debug_trace(debug)
-
-            # Load the public cert
-            manager = xmlsec.KeysManager()
-            manager.add_key(xmlsec.Key.from_memory(cert, xmlsec.KeyFormat.CERT_PEM, None))
-
-            # Prepare for encryption
-            enc_data = xmlsec.template.encrypted_data_create(
-                root, xmlsec.Transform.AES128, type=xmlsec.EncryptionType.ELEMENT, ns="xenc")
-
-            xmlsec.template.encrypted_data_ensure_cipher_value(enc_data)
-            key_info = xmlsec.template.encrypted_data_ensure_key_info(enc_data, ns="dsig")
-            enc_key = xmlsec.template.add_encrypted_key(key_info, xmlsec.Transform.RSA_OAEP)
-            xmlsec.template.encrypted_data_ensure_cipher_value(enc_key)
-
-            # Encrypt!
-            enc_ctx = xmlsec.EncryptionContext(manager)
-            enc_ctx.key = xmlsec.Key.generate(xmlsec.KeyData.AES, 128, xmlsec.KeyDataType.SESSION)
-            enc_data = enc_ctx.encrypt_xml(enc_data, name_id)
-            return '<saml:EncryptedID>' + compat.to_string(OneLogin_Saml2_XML.to_string(enc_data)) + '</saml:EncryptedID>'
+            return '<saml:EncryptedID>' + cls.encrypt_element(name_id, cert, debug=debug) + '</saml:EncryptedID>'
         else:
+            root = OneLogin_Saml2_XML.make_root("{%s}container" % OneLogin_Saml2_Constants.NS_SAML)
+            root.append(name_id)
             return OneLogin_Saml2_XML.extract_tag_text(root, "saml:NameID")
 
     @classmethod
@@ -714,6 +696,51 @@ class OneLogin_Saml2_Utils(object):
         manager.add_key(xmlsec.Key.from_memory(key, xmlsec.KeyFormat.PEM, key_passphrase))
         enc_ctx = xmlsec.EncryptionContext(manager)
         return enc_ctx.decrypt(encrypted_data)
+
+    @staticmethod
+    def encrypt_element(data, cert, debug=False):
+        """
+        Generates a nameID.
+
+        :param value: data
+        :type: lxml.etree.Element | DOMElement | basestring
+
+        :param cert: IdP Public Cert to encrypt the nameID
+        :type: string
+
+        :param debug: Activate the xmlsec debug
+        :type: bool
+
+        :returns: DOMElement | XMLSec nameID
+        :rtype: string
+
+        :param nq: IDP Name Qualifier
+        :type: string
+        """
+
+        xmlsec.enable_debug_trace(debug)
+
+        root = OneLogin_Saml2_XML.make_root("{%s}container" % OneLogin_Saml2_Constants.NS_SAML)
+        root.append(data)
+
+        # Load the public cert
+        manager = xmlsec.KeysManager()
+        manager.add_key(xmlsec.Key.from_memory(cert, xmlsec.KeyFormat.CERT_PEM, None))
+
+        # Prepare for encryption
+        enc_data = xmlsec.template.encrypted_data_create(
+            root, xmlsec.Transform.AES128, type=xmlsec.EncryptionType.ELEMENT, ns="xenc")
+
+        xmlsec.template.encrypted_data_ensure_cipher_value(enc_data)
+        key_info = xmlsec.template.encrypted_data_ensure_key_info(enc_data, ns="dsig")
+        enc_key = xmlsec.template.add_encrypted_key(key_info, xmlsec.Transform.RSA_OAEP)
+        xmlsec.template.encrypted_data_ensure_cipher_value(enc_key)
+
+        # Encrypt!
+        enc_ctx = xmlsec.EncryptionContext(manager)
+        enc_ctx.key = xmlsec.Key.generate(xmlsec.KeyData.AES, 128, xmlsec.KeyDataType.SESSION)
+        enc_data = enc_ctx.encrypt_xml(enc_data, data)
+        return compat.to_string(OneLogin_Saml2_XML.to_string(enc_data))
 
     @staticmethod
     def add_sign(xml, key, cert, debug=False, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA256, digest_algorithm=OneLogin_Saml2_Constants.SHA256, key_passphrase=None):
