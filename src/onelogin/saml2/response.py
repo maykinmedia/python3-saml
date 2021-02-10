@@ -181,13 +181,6 @@ class OneLogin_Saml2_Response(object):
                         OneLogin_Saml2_ValidationError.NO_ATTRIBUTESTATEMENT
                     )
 
-                encrypted_attributes_nodes = self.__query_assertion('/saml:AttributeStatement/saml:EncryptedAttribute')
-                if encrypted_attributes_nodes:
-                    raise OneLogin_Saml2_ValidationError(
-                        'There is an EncryptedAttribute in the Response and this SP not support them',
-                        OneLogin_Saml2_ValidationError.ENCRYPTED_ATTRIBUTES
-                    )
-
                 # Checks destination
                 destination = self.document.get('Destination', None)
                 if destination:
@@ -581,10 +574,26 @@ class OneLogin_Saml2_Response(object):
     def get_attributes(self):
         """
         Gets the Attributes from the AttributeStatement element.
-        EncryptedAttributes are not supported
         """
         attributes = {}
-        attribute_nodes = self.__query_assertion('/saml:AttributeStatement/saml:Attribute')
+
+
+        encrypted_attribute_nodes = self.__query_assertion('/saml:AttributeStatement/saml:EncryptedAttribute')
+        decrypted_attribute_nodes = []
+        for encrypted_attribute_node in encrypted_attribute_nodes:
+            key = self.__settings.get_sp_key()
+            self.__prepare_keyinfo(encrypted_attribute_node)
+            encrypted_data = encrypted_attribute_node.getchildren()[0]
+            # TODO: When not doing an inplace decrypt_element, the 'saml' namespace
+            # does not end up in the nsmap of the decrypted element, and the iterChildren of the saml:AttributeValue
+            # does not pick up the decrypted element. Instead use the inplace=True to circumvent this problem.
+            decrypted_attribute_nodes.append(OneLogin_Saml2_Utils.decrypt_element(
+                encrypted_data, key,
+                key_passphrase=self.__settings.get_sp_key_passphrase(),
+                inplace=True,
+            ))
+
+        attribute_nodes = self.__query_assertion('/saml:AttributeStatement/saml:Attribute') + decrypted_attribute_nodes
         for attribute_node in attribute_nodes:
             attr_name = attribute_node.get('Name')
             if attr_name in attributes.keys():
