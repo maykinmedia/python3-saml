@@ -571,7 +571,7 @@ class OneLogin_Saml2_Response(object):
             session_index = authn_statement_nodes[0].get('SessionIndex')
         return session_index
 
-    def get_attributes(self):
+    def get_attributes(self, extended_output=False):
         """
         Gets the Attributes from the AttributeStatement element.
         """
@@ -605,9 +605,17 @@ class OneLogin_Saml2_Response(object):
             values = []
             for attr in attribute_node.iterchildren('{%s}AttributeValue' % OneLogin_Saml2_Constants.NSMAP['saml']):
                 attr_text = OneLogin_Saml2_XML.element_text(attr)
+                attr_text = attr_text.strip() if attr_text else attr_text
+
                 if attr_text:
-                    attr_text = attr_text.strip()
-                    if attr_text:
+                    if extended_output:
+                        values.append({
+                            'AttributeValue': {
+                                'attrib': attr.attrib,
+                                'value': attr_text
+                            }
+                        })
+                    else:
                         values.append(attr_text)
 
                 # Parse encrypted ids
