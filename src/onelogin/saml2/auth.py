@@ -136,6 +136,21 @@ class OneLogin_Saml2_Auth(object):
 
         return saml2_response
 
+    def post_response(self, request_id=None):
+        # AuthnResponse -- HTTP_POST Binding
+        post_data = self.__request_data['post_data']
+        if not 'SAMLResponse' in post_data:
+            raise OneLogin_Saml2_ValidationError('Can not find SAMLResponse in post data')
+
+        saml2_response = OneLogin_Saml2_Response(self.__settings, post_data['SAMLResponse'])
+
+        try:
+            saml2_response.is_valid(self.__request_data, raise_exceptions=True)
+        except OneLogin_Saml2_ValidationError as e:
+            raise e
+
+        return saml2_response
+
     def store_valid_response(self, response):
         self.__attributes = response.get_attributes()
         self.__nameid = response.get_nameid()
