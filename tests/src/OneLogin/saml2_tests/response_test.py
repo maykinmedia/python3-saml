@@ -1845,3 +1845,57 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
             attributes['urn:etoegang:1.11:attribute-represented:CompanyName'],
             ['Maykin Media B.V.']
         )
+
+    def testEncryptedAttributeCarriedKeyName(self):
+        """
+        Test that decrypting EncryptedAttribute elements works as expected when using CarriedKeyName
+        instead of the 'RetrievalMethod' mechanism.
+        """
+        settings = OneLogin_Saml2_Settings(self.loadSettingsJSON())
+
+        base64_content = self.file_contents(join(self.data_path, 'responses', 'valid_unsigned_response.xml.base64'))
+        xml = b64decode(base64_content)
+        response_element = OneLogin_Saml2_XML.to_etree(xml)
+
+        attribute = OneLogin_Saml2_XML.make_root('{%s}Attribute' % OneLogin_Saml2_Constants.NS_SAML)
+        attribute.set('Name', "urn:etoegang:1.11:attribute-represented:CompanyName")
+        attribute.set('NameFormat', "urn:oasis:names:tc:SAML:2.0:attrname-format:uri")
+        attribute.set('{urn:oasis:names:tc:SAML:attribute:ext}LastModified', "2019-03-12T14:20:46.113Z")
+
+        attribute_value = OneLogin_Saml2_XML.make_child(attribute, '{%s}AttributeValue' % OneLogin_Saml2_Constants.NS_SAML)
+        attribute_value.text = 'Maykin Media B.V.'
+
+        encrypted_data = OneLogin_Saml2_Utils.encrypt_element(attribute, cert=settings.get_sp_cert())
+        _encrypted_data = OneLogin_Saml2_XML.to_etree(encrypted_data)
+
+        _encrypted_key = OneLogin_Saml2_XML.query(_encrypted_data, '//ds:KeyInfo/xenc:EncryptedKey')[0]
+        _encrypted_key.getparent().remove(_encrypted_key)
+
+        _key_info = OneLogin_Saml2_XML.query(_encrypted_data, '//ds:KeyInfo')[0]
+        _key_name = etree.SubElement(_key_info, '{http://www.w3.org/2000/09/xmldsig#}KeyName')
+        _key_name.text = '_abcdef0123456789'
+
+        _carried_key_name = etree.SubElement(_encrypted_key, '{http://www.w3.org/2001/04/xmlenc#}CarriedKeyName')
+        _carried_key_name.text = '_abcdef0123456789'
+
+        encrypted_attribute = (
+            '<saml:EncryptedAttribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:xenc="http://www.w3.org/2001/04/xmlenc#">'
+            + OneLogin_Saml2_XML.to_string(_encrypted_data).decode('utf-8')
+            + OneLogin_Saml2_XML.to_string(_encrypted_key).decode('utf-8') +
+            '</saml:EncryptedAttribute>'
+        )
+        statement_element = OneLogin_Saml2_XML.query(response_element, '//saml:AttributeStatement')
+        encrypted_attribute_element = OneLogin_Saml2_XML.to_etree(encrypted_attribute)
+        statement_element[0].append(encrypted_attribute_element)
+
+        # Try to parse the Response
+        response = OneLogin_Saml2_Response(
+            settings, b64encode(OneLogin_Saml2_XML.to_string(response_element))
+        )
+        response.is_valid(self.get_request_data())
+        attributes = response.get_attributes()
+
+        self.assertEqual(
+            attributes['urn:etoegang:1.11:attribute-represented:CompanyName'],
+            ['Maykin Media B.V.']
+        )
