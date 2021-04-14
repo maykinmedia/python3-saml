@@ -865,6 +865,16 @@ class OneLogin_Saml2_Response(object):
                 OneLogin_Saml2_ValidationError.CHILDREN_NODE_NOT_FOUND_IN_KEYINFO
             )
         for child in children:
+            # If a 'KeyName' is specified, look for external EncryptedKey elements
+            # which have a CarriedKeyName element with that name.
+            if 'KeyName' in child.tag:
+                carried_key_names = OneLogin_Saml2_XML.query(
+                    node, "./xenc:EncryptedKey/xenc:CarriedKeyName[text()[contains(.,$tagid)]]",
+                    None, child.text
+                )
+                if carried_key_names:
+                    encrypted_data_keyinfo.append(carried_key_names[0].getparent())
+
             if 'RetrievalMethod' in child.tag:
                 if child.attrib['Type'] != 'http://www.w3.org/2001/04/xmlenc#EncryptedKey':
                     raise OneLogin_Saml2_ValidationError(
