@@ -136,6 +136,21 @@ class OneLogin_Saml2_Auth(object):
 
         return saml2_response
 
+    def post_response(self, request_id=None):
+        # AuthnResponse -- HTTP_POST Binding
+        post_data = self.__request_data['post_data']
+        if not 'SAMLResponse' in post_data:
+            raise OneLogin_Saml2_ValidationError('Can not find SAMLResponse in post data')
+
+        saml2_response = OneLogin_Saml2_Response(self.__settings, post_data['SAMLResponse'])
+
+        try:
+            saml2_response.is_valid(self.__request_data, raise_exceptions=True)
+        except OneLogin_Saml2_ValidationError as e:
+            raise e
+
+        return saml2_response
+
     def store_valid_response(self, response):
         self.__attributes = response.get_attributes()
         self.__nameid = response.get_nameid()
@@ -420,16 +435,18 @@ class OneLogin_Saml2_Auth(object):
         authn_request = self._create_authn_request(**authn_kwargs)
 
         url = self.get_sso_url()
-        data = authn_request.get_request(deflate=False, base64_encode=False)
-        saml_request = OneLogin_Saml2_Utils.b64encode(
-            OneLogin_Saml2_Utils.add_sign(
+        data = authn_request.get_request(deflate=False, base64_encode=False).encode('utf-8')
+
+        security = self.__settings.get_security_data()
+        if security.get('authnRequestsSigned', False):
+            data = OneLogin_Saml2_Utils.add_sign(
                 data,
                 self.__settings.get_sp_key(), self.__settings.get_sp_cert(),
                 key_passphrase=self.__settings.get_sp_key_passphrase(),
                 sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA256,
-                digest_algorithm=OneLogin_Saml2_Constants.SHA256,),
+                digest_algorithm=OneLogin_Saml2_Constants.SHA256)
 
-        )
+        saml_request = OneLogin_Saml2_Utils.b64encode(data)
         logger.debug(
             "Returning form-data to the user for a AuthNRequest to %s with SAMLRequest %s",
             url, OneLogin_Saml2_Utils.b64decode(saml_request).decode('utf-8')

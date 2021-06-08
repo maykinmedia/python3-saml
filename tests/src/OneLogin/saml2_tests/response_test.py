@@ -675,6 +675,29 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         response_2 = OneLogin_Saml2_Response(settings, xml_2)
         self.assertEqual({}, response_2.get_attributes())
 
+    def testGetAttributesExtended(self):
+        """
+        Tests the getAttributes method of the OneLogin_Saml2_Response
+        """
+        settings = OneLogin_Saml2_Settings(self.loadSettingsJSON())
+        xml = self.file_contents(join(self.data_path, 'responses', 'response6.xml.base64'))
+        response = OneLogin_Saml2_Response(settings, xml)
+        expected_attributes = {
+            'uid': [
+                {'AttributeValue': {
+                    'attrib': {'Soort': 'demo', '{http://www.w3.org/2001/XMLSchema-instance}type': 'xs:string'},
+                    'value': 'demo',
+                }}
+            ],
+            'another_value': [
+                {'AttributeValue': {
+                    'attrib': {'Soort': 'value', '{http://www.w3.org/2001/XMLSchema-instance}type': 'xs:string'},
+                    'value': 'value',
+                }}
+            ],
+        }
+        self.assertEqual(expected_attributes, response.get_attributes(extended_output=True))
+
     def testGetNestedNameIDAttributes(self):
         """
         Tests the getAttributes method of the OneLogin_Saml2_Response with nested

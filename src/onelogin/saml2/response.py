@@ -571,7 +571,7 @@ class OneLogin_Saml2_Response(object):
             session_index = authn_statement_nodes[0].get('SessionIndex')
         return session_index
 
-    def get_attributes(self):
+    def get_attributes(self, extended_output=False):
         """
         Gets the Attributes from the AttributeStatement element.
         """
@@ -605,9 +605,17 @@ class OneLogin_Saml2_Response(object):
             values = []
             for attr in attribute_node.iterchildren('{%s}AttributeValue' % OneLogin_Saml2_Constants.NSMAP['saml']):
                 attr_text = OneLogin_Saml2_XML.element_text(attr)
+                attr_text = attr_text.strip() if attr_text else attr_text
+
                 if attr_text:
-                    attr_text = attr_text.strip()
-                    if attr_text:
+                    if extended_output:
+                        values.append({
+                            'AttributeValue': {
+                                'attrib': attr.attrib,
+                                'value': attr_text
+                            }
+                        })
+                    else:
                         values.append(attr_text)
 
                 # Parse encrypted ids
@@ -647,8 +655,25 @@ class OneLogin_Saml2_Response(object):
         :returns: True if only 1 assertion encrypted or not
         :rtype: bool
         """
-        encrypted_assertion_nodes = OneLogin_Saml2_XML.query(self.document, '/samlp:Response/saml:EncryptedAssertion')
-        assertion_nodes = OneLogin_Saml2_XML.query(self.document, '/samlp:Response/saml:Assertion')
+        security = self.__settings.get_security_data()
+
+        # This is a hack, which I need for digid-eherkenning, since the eHerkenning IDP returns
+        # a Advice-section which contains EncryptedAssertions/Signatures as well. Which are not malicious.
+        #
+        # For eHerkenning in digid-eherkenning a signature wrapping attack is not problematic since the connection
+        # to the IDP is protected by a TLS connection (It uses the Artifact binding). Thus not allow
+        # a malicious user to insert a malicious signature.
+        #
+        # I see two ways for properly fixing this problem:
+        # - Ask the IDP not to send the Advice section in the ArtifactResponse.
+        # - Make sure we verify/decrypt the EncryptedAssertion in the actual response and ignore the Advice section.
+        # My knowledge of this kind of attack is limited, so I'd need to look into that.
+        if security.get('disableSignatureWrappingProtection', False):
+            encrypted_assertion_nodes = OneLogin_Saml2_XML.query(self.document, '/samlp:Response/saml:EncryptedAssertion')
+            assertion_nodes = OneLogin_Saml2_XML.query(self.document, '/samlp:Response/saml:Assertion')
+        else:
+            encrypted_assertion_nodes = OneLogin_Saml2_XML.query(self.document, '//saml:EncryptedAssertion')
+            assertion_nodes = OneLogin_Saml2_XML.query(self.document, '//saml:Assertion')
 
         valid = len(encrypted_assertion_nodes) + len(assertion_nodes) == 1
 
@@ -667,7 +692,11 @@ class OneLogin_Saml2_Response(object):
         :returns: The signed elements tag names
         :rtype: list
         """
-        sign_nodes = self.__query('//ds:Signature[not(ancestor::saml:Advice)]')
+        security = self.__settings.get_security_data()
+        if security.get('disableSignatureWrappingProtection', False):
+            sign_nodes = self.__query('//ds:Signature[not(ancestor::saml:Advice)]')
+        else:
+            sign_nodes = self.__query('//ds:Signature')
         signed_elements = []
         verified_seis = []
         verified_ids = []
