@@ -161,32 +161,18 @@ class OneLogin_Saml2_Auth(object):
 
     def post_response(self, request_id=None):
         # AuthnResponse -- HTTP_POST Binding
-        post_data = self.__request_data['post_data']
+        post_data = self._request_data['post_data']
         if not 'SAMLResponse' in post_data:
             raise OneLogin_Saml2_ValidationError('Can not find SAMLResponse in post data')
 
-        saml2_response = OneLogin_Saml2_Response(self.__settings, post_data['SAMLResponse'])
+        saml2_response = OneLogin_Saml2_Response(self._settings, post_data['SAMLResponse'])
 
         try:
-            saml2_response.is_valid(self.__request_data, raise_exceptions=True)
+            saml2_response.is_valid(self._request_data, raise_exceptions=True)
         except OneLogin_Saml2_ValidationError as e:
             raise e
 
         return saml2_response
-
-    def store_valid_response(self, response):
-        self.__attributes = response.get_attributes()
-        self.__nameid = response.get_nameid()
-        self.__nameid_format = response.get_nameid_format()
-        self.__nameid_nq = response.get_nameid_nq()
-        self.__nameid_spnq = response.get_nameid_spnq()
-        self.__session_index = response.get_session_index()
-        self.__session_expiration = response.get_session_not_on_or_after()
-        self.__last_message_id = response.get_id()
-        self.__last_assertion_id = response.get_assertion_id()
-        self.__last_authn_contexts = response.get_authn_contexts()
-        self.__authenticated = True
-        self.__last_assertion_not_on_or_after = response.get_assertion_not_on_or_after()
 
     def process_response(self, request_id=None):
         """
@@ -202,20 +188,20 @@ class OneLogin_Saml2_Auth(object):
 
         if 'post_data' in self._request_data and 'SAMLResponse' in self._request_data['post_data']:
             # AuthnResponse -- HTTP_POST Binding
-            response = OneLogin_Saml2_Response(self.__settings, self.__request_data['post_data']['SAMLResponse'])
-            self.__last_response = response.get_xml_document()
+            response = OneLogin_Saml2_Response(self._settings, self._request_data['post_data']['SAMLResponse'])
+            self._last_response = response.get_xml_document()
 
-            if response.is_valid(self.__request_data, request_id):
+            if response.is_valid(self._request_data, request_id):
                 self.store_valid_response(response)
             else:
-                self.__errors.append('invalid_response')
-                self.__error_reason = response.get_error()
-        elif 'get_data' in self.__request_data and 'SAMLArt' in self.__request_data['get_data']:
+                self._errors.append('invalid_response')
+                self._error_reason = response.get_error()
+        elif 'get_data' in self._request_data and 'SAMLArt' in self._request_data['get_data']:
             try:
-                response = self.artifact_resolve(self.__request_data['get_data']['SAMLArt'])
+                response = self.artifact_resolve(self._request_data['get_data']['SAMLArt'])
             except OneLogin_Saml2_ValidationError as e:
-                self.__errors.append('invalid_response')
-                self.__error_reason = str(e)
+                self._errors.append('invalid_response')
+                self._error_reason = str(e)
             else:
                 self.store_valid_response(response)
         else:
@@ -494,7 +480,7 @@ class OneLogin_Saml2_Auth(object):
         url = self.get_sso_url()
         data = authn_request.get_request(deflate=False, base64_encode=False).encode('utf-8')
 
-        security = self.__settings.get_security_data()
+        security = self._settings.get_security_data()
         if security.get('authnRequestsSigned', False):
             data = OneLogin_Saml2_Utils.add_sign(
                 data,
