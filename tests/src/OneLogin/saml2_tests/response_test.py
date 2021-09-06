@@ -1018,6 +1018,7 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         self.assertFalse(response_5.is_valid(self.get_request_data()))
         self.assertIn('A valid SubjectConfirmation was not found on this Response', response_5.get_error())
 
+    @freeze_time("2021-06-17")
     def testIsInValidAudience(self):
         """
         Tests the is_valid method of the OneLogin_Saml2_Response class
@@ -1078,6 +1079,7 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         response.is_valid(request_data)
         self.assertIn('The response was received at', response.get_error())
 
+    @freeze_time("2021-06-17")
     def testIsInValidIssuer(self):
         """
         Tests the is_valid method of the OneLogin_Saml2_Response class
@@ -1116,6 +1118,7 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         with self.assertRaisesRegex(Exception, 'Invalid issuer in the Assertion/Response'):
             response_4.is_valid(request_data, raise_exceptions=True)
 
+    @freeze_time("2021-06-17")
     def testIsInValidSessionIndex(self):
         """
         Tests the is_valid method of the OneLogin_Saml2_Response class
@@ -1162,6 +1165,7 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         response.is_valid(request_data)
         self.assertEqual('No Signature found. SAML Response rejected', response.get_error())
 
+    @freeze_time("2021-06-17")
     def testIsInValidSubjectConfirmation(self):
         """
         Tests the is_valid method of the OneLogin_Saml2_Response class
