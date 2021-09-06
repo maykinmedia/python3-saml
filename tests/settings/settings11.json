@@ -13,14 +13,14 @@
         },
         "NameIDFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"
     },
-    "idp": {
-        "entityId": "http://idp.example.com/",
+"idp": {
+        "entityId": "https://idp.com/saml/idp/metadata",
         "singleSignOnService": {
-            "url": "http://idp.example.com/SSOService.php",
+            "url": "https://idp.com/saml/idp/request_authentication",
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
         },
         "singleLogoutService": {
-            "url": "http://idp.example.com/SingleLogoutService.php"
+            "url": "http://idp.com/SingleLogoutService.php"
         },
         "artifactResolutionService": [{
             "index": "0",

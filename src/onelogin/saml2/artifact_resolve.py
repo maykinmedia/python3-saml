@@ -37,14 +37,14 @@ def parse_saml2_artifact(artifact):
 
 class Artifact_Resolve_Request:
     def __init__(self, settings, saml_art):
-        self.__settings = settings
+        self._settings = settings
         self.soap_endpoint = self.find_soap_endpoint(saml_art)
         self.saml_art = saml_art
 
-        sp_data = self.__settings.get_sp_data()
+        sp_data = self._settings.get_sp_data()
 
         uid = OneLogin_Saml2_Utils.generate_unique_id()
-        self.__id = uid
+        self._id = uid
 
         issue_instant = OneLogin_Saml2_Utils.parse_time_to_SAML(OneLogin_Saml2_Utils.now())
 
@@ -59,7 +59,7 @@ class Artifact_Resolve_Request:
         self.__artifact_resolve_request = request
 
     def find_soap_endpoint(self, saml_art):
-        idp = self.__settings.get_idp_data()
+        idp = self._settings.get_idp_data()
         index, sha1_entity_id, message_handle = parse_saml2_artifact(saml_art)
 
         if sha1_entity_id != sha1(idp['entityId'].encode('utf-8')).digest():
@@ -84,14 +84,14 @@ class Artifact_Resolve_Request:
 
         return OneLogin_Saml2_Utils.add_sign(
             request,
-            self.__settings.get_sp_key(), self.__settings.get_sp_cert(),
-            key_passphrase=self.__settings.get_sp_key_passphrase(),
+            self._settings.get_sp_key(), self._settings.get_sp_cert(),
+            key_passphrase=self._settings.get_sp_key_passphrase(),
             sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA256,
             digest_algorithm=OneLogin_Saml2_Constants.SHA256,
         )
 
     def send(self):
-        security_data = self.__settings.get_security_data()
+        security_data = self._settings.get_security_data()
         headers = {"content-type": "application/soap+xml"}
         url = self.soap_endpoint['url']
         data = self.get_soap_request()
@@ -120,4 +120,4 @@ class Artifact_Resolve_Request:
         :return: ArtifactResolve ID
         :rtype: string
         """
-        return self.__id
+        return self._id

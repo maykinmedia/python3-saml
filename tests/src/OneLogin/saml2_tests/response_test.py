@@ -754,10 +754,6 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         response_3 = OneLogin_Saml2_Response(settings, xml_3)
         self.assertEqual({}, response_3.get_friendlyname_attributes())
 
-        xml_4 = self.file_contents(join(self.data_path, 'responses', 'invalids', 'encrypted_attrs.xml.base64'))
-        response_4 = OneLogin_Saml2_Response(settings, xml_4)
-        self.assertEqual({}, response_4.get_friendlyname_attributes())
-
         # Test retrieving duplicate attributes
         xml_5 = self.file_contents(join(self.data_path, 'responses',
                                         'response1_with_duplicate_attributes.xml.base64'))
