@@ -127,7 +127,7 @@ class OneLogin_Saml2_Authn_Request(object):
                 'acs_binding': sp_data['assertionConsumerService'].get('binding', 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST')
             }
 
-        self._authn_request = request
+        self.__authn_request = request
 
     def _generate_request_id(self):
         """
@@ -166,4 +166,4 @@ class OneLogin_Saml2_Authn_Request(object):
         :return: XML request body
         :rtype: string
         """
-        return self._authn_request
+        return self.__authn_request
