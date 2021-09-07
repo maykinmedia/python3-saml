@@ -422,10 +422,10 @@ class OneLogin_Saml2_Auth(object):
         return self.__last_authn_contexts
 
     def _create_authn_request(
-        self, force_authn=False, is_passive=False, set_nameid_policy=True, name_id_value_req=None
+        self, force_authn=False, is_passive=False, set_nameid_policy=True, name_id_value_req=None, attr_consuming_service_index=None
     ):
         authn_request = OneLogin_Saml2_Authn_Request(
-            self.__settings, force_authn, is_passive, set_nameid_policy, name_id_value_req
+            self.__settings, force_authn, is_passive, set_nameid_policy, name_id_value_req, attr_consuming_service_index
         )
         self.__last_request = authn_request.get_xml()
         self.__last_request_id = authn_request.get_id()
@@ -460,7 +460,7 @@ class OneLogin_Saml2_Auth(object):
 
         return url, parameters
 
-    def login(self, return_to=None, force_authn=False, is_passive=False, set_nameid_policy=True, name_id_value_req=None):
+    def login(self, return_to=None, force_authn=False, is_passive=False, set_nameid_policy=True, name_id_value_req=None, attr_consuming_service_index=None):
         """
         Initiates the SSO process.
 
@@ -484,7 +484,8 @@ class OneLogin_Saml2_Auth(object):
         """
         authn_request = self._create_authn_request(
             force_authn=force_authn, is_passive=is_passive,
-            set_nameid_policy=set_nameid_policy, name_id_value_req=name_id_value_req
+            set_nameid_policy=set_nameid_policy, name_id_value_req=name_id_value_req,
+            attr_consuming_service_index=attr_consuming_service_index
         )
 
         saml_request = authn_request.get_request()
