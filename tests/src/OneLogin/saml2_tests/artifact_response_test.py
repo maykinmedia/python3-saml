@@ -1,17 +1,10 @@
-from base64 import b64decode
-from lxml import etree
-from datetime import datetime
-from datetime import timedelta
-from freezegun import freeze_time
 import json
 from os.path import dirname, join, exists
 import unittest
-from xml.dom.minidom import parseString
 
-from onelogin.saml2 import compat
 from onelogin.saml2.artifact_response import Artifact_Response
 from onelogin.saml2.settings import OneLogin_Saml2_Settings
-from onelogin.saml2.utils import OneLogin_Saml2_Utils, OneLogin_Saml2_ValidationError
+from onelogin.saml2.utils import OneLogin_Saml2_ValidationError
 
 
 class Saml2_Artifact_Response_Test(unittest.TestCase):
