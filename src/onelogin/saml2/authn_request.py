@@ -22,7 +22,7 @@ class OneLogin_Saml2_Authn_Request(object):
 
     """
 
-    def __init__(self, settings, force_authn=False, is_passive=False, set_nameid_policy=True, name_id_value_req=None):
+    def __init__(self, settings, force_authn=False, is_passive=False, set_nameid_policy=True, name_id_value_req=None, attr_consuming_service_index=None):
         """
         Constructs the AuthnRequest object.
 
@@ -106,9 +106,9 @@ class OneLogin_Saml2_Authn_Request(object):
                     requested_authn_context_str += '<saml:AuthnContextClassRef>%s</saml:AuthnContextClassRef>' % authn_context
                 requested_authn_context_str += '    </samlp:RequestedAuthnContext>'
 
-        attr_consuming_service_str = ''
-        if 'attributeConsumingService' in sp_data and sp_data['attributeConsumingService']:
-            attr_consuming_service_str = "\n    AttributeConsumingServiceIndex=\"%s\"" % sp_data['attributeConsumingService'].get('index', '1')
+        attr_consuming_service_str = ""
+        if attr_consuming_service_index:
+            attr_consuming_service_str = "\n    AttributeConsumingServiceIndex=\"%s\"" % attr_consuming_service_index
 
         request = OneLogin_Saml2_Templates.AUTHN_REQUEST % \
             {
