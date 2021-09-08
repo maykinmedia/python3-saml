@@ -179,10 +179,14 @@ class OneLogin_Saml2_IdPMetadataParser(object):
                     "./md:ArtifactResolutionService[@Binding='urn:oasis:names:tc:SAML:2.0:bindings:SOAP']"
                 )
 
-
-
-                signing_nodes = OneLogin_Saml2_XML.query(idp_descriptor_node, "./md:KeyDescriptor[not(contains(@use, 'encryption'))]/ds:KeyInfo/ds:X509Data/ds:X509Certificate")
-                encryption_nodes = OneLogin_Saml2_XML.query(idp_descriptor_node, "./md:KeyDescriptor[not(contains(@use, 'signing'))]/ds:KeyInfo/ds:X509Data/ds:X509Certificate")
+                signing_nodes = OneLogin_Saml2_XML.query(
+                    idp_descriptor_node,
+                    "./md:KeyDescriptor[not(contains(@use, 'encryption'))]/ds:KeyInfo/ds:X509Data/ds:X509Certificate"
+                )
+                encryption_nodes = OneLogin_Saml2_XML.query(
+                    idp_descriptor_node,
+                    "./md:KeyDescriptor[not(contains(@use, 'signing'))]/ds:KeyInfo/ds:X509Data/ds:X509Certificate"
+                )
 
                 if len(signing_nodes) > 0 or len(encryption_nodes) > 0:
                     certs = {}
