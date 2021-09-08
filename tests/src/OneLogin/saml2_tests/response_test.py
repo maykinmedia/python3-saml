@@ -1956,8 +1956,8 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         )
         attribute = (
             '<saml:Attribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" FriendlyName="ActingSubjectID" Name="urn:etoegang:core:LegalSubjectID">'
-            "<saml:AttributeValue>"
-            + encrypted_id +
+            "<saml:AttributeValue>" +
+            encrypted_id +
             "</saml:AttributeValue></saml:Attribute>"
         )
         statement_element = OneLogin_Saml2_XML.query(response_element, '//saml:AttributeStatement')
@@ -1974,10 +1974,12 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         self.assertEqual(
             attributes['urn:etoegang:core:LegalSubjectID'],
             [
-                {'NameID': {
-                    'Format': 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent',
-                    'NameQualifier': 'urn:etoegang:1.9:EntityConcernedID:RSIN',
-                    'value': '123456782'}
+                {
+                    'NameID': {
+                        'Format': 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent',
+                        'NameQualifier': 'urn:etoegang:1.9:EntityConcernedID:RSIN',
+                        'value': '123456782'
+                    }
                 }
             ]
         )
@@ -2001,8 +2003,9 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         attribute_value.text = 'Maykin Media B.V.'
 
         encrypted_attribute = (
-            '<saml:EncryptedAttribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:xenc="http://www.w3.org/2001/04/xmlenc#">'
-            + OneLogin_Saml2_Utils.encrypt_element(attribute, cert=settings.get_sp_cert()) + 
+            '<saml:EncryptedAttribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" '
+            'xmlns:xenc="http://www.w3.org/2001/04/xmlenc#">' +
+            OneLogin_Saml2_Utils.encrypt_element(attribute, cert=settings.get_sp_cert()) +
             '</saml:EncryptedAttribute>'
         )
         statement_element = OneLogin_Saml2_XML.query(response_element, '//saml:AttributeStatement')
@@ -2054,9 +2057,10 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         _carried_key_name.text = '_abcdef0123456789'
 
         encrypted_attribute = (
-            '<saml:EncryptedAttribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:xenc="http://www.w3.org/2001/04/xmlenc#">'
-            + OneLogin_Saml2_XML.to_string(_encrypted_data).decode('utf-8')
-            + OneLogin_Saml2_XML.to_string(_encrypted_key).decode('utf-8') +
+            '<saml:EncryptedAttribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" '
+            'xmlns:xenc="http://www.w3.org/2001/04/xmlenc#">' +
+            OneLogin_Saml2_XML.to_string(_encrypted_data).decode('utf-8') +
+            OneLogin_Saml2_XML.to_string(_encrypted_key).decode('utf-8') +
             '</saml:EncryptedAttribute>'
         )
         statement_element = OneLogin_Saml2_XML.query(response_element, '//saml:AttributeStatement')

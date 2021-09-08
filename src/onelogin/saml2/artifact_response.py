@@ -99,7 +99,7 @@ class Artifact_Response:
                         OneLogin_Saml2_ValidationError.INVALID_XML_FORMAT
                     )
 
-                security = self.__settings.get_security_data()
+                self.__settings.get_security_data()
 
                 # Check if the InResponseTo of the Artifact Response matches the ID of the Artifact Resolve Request (requestId) if provided
                 in_response_to = self.get_in_response_to()
