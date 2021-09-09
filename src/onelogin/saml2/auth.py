@@ -505,7 +505,15 @@ class OneLogin_Saml2_Auth(object):
 
         return url, parameters
 
-    def login(self, return_to=None, force_authn=False, is_passive=False, set_nameid_policy=True, name_id_value_req=None, attr_consuming_service_index=None):
+    def login(
+            self,
+            return_to=None,
+            force_authn=False,
+            is_passive=False,
+            set_nameid_policy=True,
+            name_id_value_req=None,
+            attr_consuming_service_index=None
+    ):
         """
         Initiates the SSO process.
 
@@ -526,6 +534,9 @@ class OneLogin_Saml2_Auth(object):
 
         :returns: Redirection URL
         :rtype: string
+
+        :param attr_consuming_service_index: Optional argument. Indicates the AttributeConsumingServiceIndex attribute
+        :type attr_consuming_service_index: string
         """
         authn_request = self._create_authn_request(
             force_authn=force_authn, is_passive=is_passive,
