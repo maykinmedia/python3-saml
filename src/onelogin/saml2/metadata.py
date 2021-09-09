@@ -36,13 +36,85 @@ class OneLogin_Saml2_Metadata(object):
     TIME_VALID = 172800   # 2 days
     TIME_CACHED = 604800  # 1 week
 
+    @staticmethod
+    def make_attribute_consuming_services(service_provider: dict) -> str:
+        str_attribute_consuming_service = ''
+        if 'attributeConsumingService' not in service_provider:
+            return str_attribute_consuming_service
+
+        # Compatibility with older versions: attributeConsumingService was just a dictionary
+        attribute_consuming_services = service_provider['attributeConsumingService']
+        if isinstance(attribute_consuming_services, dict):
+            attribute_consuming_services = [attribute_consuming_services]
+
+        for attribute_consuming_service in attribute_consuming_services:
+            if not len(attribute_consuming_service):
+                continue
+
+            attr_cs_desc_str = ''
+            if "serviceDescription" in attribute_consuming_service:
+                attr_cs_desc_str = """            <md:ServiceDescription xml:lang="en">%s</md:ServiceDescription>
+""" % attribute_consuming_service['serviceDescription']
+
+            requested_attribute_data = []
+            if 'requestedAttributes' in attribute_consuming_service:
+                for req_attribs in attribute_consuming_service['requestedAttributes']:
+                    req_attr_nameformat_str = req_attr_friendlyname_str = req_attr_isrequired_str = ''
+                    req_attr_aux_str = ' />'
+
+                    if 'nameFormat' in req_attribs.keys() and req_attribs['nameFormat']:
+                        req_attr_nameformat_str = " NameFormat=\"%s\"" % req_attribs['nameFormat']
+                    if 'friendlyName' in req_attribs.keys() and req_attribs['friendlyName']:
+                        req_attr_friendlyname_str = " FriendlyName=\"%s\"" % req_attribs['friendlyName']
+                    if 'isRequired' in req_attribs.keys() and req_attribs['isRequired']:
+                        req_attr_isrequired_str = " isRequired=\"%s\"" % 'true' if req_attribs['isRequired'] else 'false'
+                    if 'attributeValue' in req_attribs.keys() and req_attribs['attributeValue']:
+                        if isinstance(req_attribs['attributeValue'], basestring):
+                            req_attribs['attributeValue'] = [req_attribs['attributeValue']]
+
+                        req_attr_aux_str = ">"
+                        for attrValue in req_attribs['attributeValue']:
+                            req_attr_aux_str += """
+                <saml:AttributeValue xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">%(attributeValue)s</saml:AttributeValue>""" % \
+                                                {
+                                                    'attributeValue': attrValue
+                                                }
+                        req_attr_aux_str += """
+            </md:RequestedAttribute>"""
+
+                    requested_attribute = """            <md:RequestedAttribute Name="%(req_attr_name)s"%(req_attr_nameformat_str)s%(req_attr_friendlyname_str)s%(req_attr_isrequired_str)s%(req_attr_aux_str)s""" % \
+                                          {
+                                              'req_attr_name': req_attribs['name'],
+                                              'req_attr_nameformat_str': req_attr_nameformat_str,
+                                              'req_attr_friendlyname_str': req_attr_friendlyname_str,
+                                              'req_attr_isrequired_str': req_attr_isrequired_str,
+                                              'req_attr_aux_str': req_attr_aux_str
+                                          }
+
+                    requested_attribute_data.append(requested_attribute)
+
+            str_attribute_consuming_service += """        <md:AttributeConsumingService index="%(attribute_consuming_service_index)s">
+            <md:ServiceName xml:lang="en">%(service_name)s</md:ServiceName>
+%(attr_cs_desc)s%(requested_attribute_str)s
+        </md:AttributeConsumingService>
+""" % \
+                                               {
+                                                   'service_name': attribute_consuming_service.get('serviceName', ''),
+                                                   'attr_cs_desc': attr_cs_desc_str,
+                                                   'attribute_consuming_service_index': attribute_consuming_service.get(
+                                                       'index', '1'
+                                                   ),
+                                                   'requested_attribute_str': '\n'.join(requested_attribute_data)
+                                               }
+        return str_attribute_consuming_service
+
     @classmethod
     def builder(cls, sp, authnsign=False, wsign=False, valid_until=None, cache_duration=None, contacts=None, organization=None):
         """
         Builds the metadata of the SP
 
         :param sp: The SP data
-        :type sp: string
+        :type sp: dict
 
         :param authnsign: authnRequestsSigned attribute
         :type authnsign: string
@@ -121,60 +193,7 @@ class OneLogin_Saml2_Metadata(object):
                 contacts_info.append(contact)
             str_contacts = '\n'.join(contacts_info)
 
-        str_attribute_consuming_service = ''
-        if 'attributeConsumingService' in sp and len(sp['attributeConsumingService']):
-            attr_cs_desc_str = ''
-            if "serviceDescription" in sp['attributeConsumingService']:
-                attr_cs_desc_str = """            <md:ServiceDescription xml:lang="en">%s</md:ServiceDescription>
-""" % sp['attributeConsumingService']['serviceDescription']
-
-            requested_attribute_data = []
-            for req_attribs in sp['attributeConsumingService']['requestedAttributes']:
-                req_attr_nameformat_str = req_attr_friendlyname_str = req_attr_isrequired_str = ''
-                req_attr_aux_str = ' />'
-
-                if 'nameFormat' in req_attribs.keys() and req_attribs['nameFormat']:
-                    req_attr_nameformat_str = " NameFormat=\"%s\"" % req_attribs['nameFormat']
-                if 'friendlyName' in req_attribs.keys() and req_attribs['friendlyName']:
-                    req_attr_friendlyname_str = " FriendlyName=\"%s\"" % req_attribs['friendlyName']
-                if 'isRequired' in req_attribs.keys() and req_attribs['isRequired']:
-                    req_attr_isrequired_str = " isRequired=\"%s\"" % 'true' if req_attribs['isRequired'] else 'false'
-                if 'attributeValue' in req_attribs.keys() and req_attribs['attributeValue']:
-                    if isinstance(req_attribs['attributeValue'], basestring):
-                        req_attribs['attributeValue'] = [req_attribs['attributeValue']]
-
-                    req_attr_aux_str = ">"
-                    for attrValue in req_attribs['attributeValue']:
-                        req_attr_aux_str += """
-                <saml:AttributeValue xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">%(attributeValue)s</saml:AttributeValue>""" % \
-                            {
-                                'attributeValue': attrValue
-                            }
-                    req_attr_aux_str += """
-            </md:RequestedAttribute>"""
-
-                requested_attribute = """            <md:RequestedAttribute Name="%(req_attr_name)s"%(req_attr_nameformat_str)s%(req_attr_friendlyname_str)s%(req_attr_isrequired_str)s%(req_attr_aux_str)s""" % \
-                    {
-                        'req_attr_name': req_attribs['name'],
-                        'req_attr_nameformat_str': req_attr_nameformat_str,
-                        'req_attr_friendlyname_str': req_attr_friendlyname_str,
-                        'req_attr_isrequired_str': req_attr_isrequired_str,
-                        'req_attr_aux_str': req_attr_aux_str
-                    }
-
-                requested_attribute_data.append(requested_attribute)
-
-            str_attribute_consuming_service = """        <md:AttributeConsumingService index="%(attribute_consuming_service_index)s">
-            <md:ServiceName xml:lang="en">%(service_name)s</md:ServiceName>
-%(attr_cs_desc)s%(requested_attribute_str)s
-        </md:AttributeConsumingService>
-""" % \
-                {
-                    'service_name': sp['attributeConsumingService']['serviceName'],
-                    'attr_cs_desc': attr_cs_desc_str,
-                    'attribute_consuming_service_index': sp['attributeConsumingService'].get('index', '1'),
-                    'requested_attribute_str': '\n'.join(requested_attribute_data)
-                }
+        str_attribute_consuming_service = cls.make_attribute_consuming_services(sp)
 
         metadata = OneLogin_Saml2_Templates.MD_ENTITY_DESCRIPTOR % \
             {
