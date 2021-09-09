@@ -106,6 +106,12 @@ class OneLogin_Saml2_Settings_Test(unittest.TestCase):
         except Exception as e:
             self.assertIn('Invalid dict settings: idp_cert_not_found_and_required', str(e))
 
+    def testIndexRequiredForMultipleAttributeConsumingServices(self):
+        try:
+            OneLogin_Saml2_Settings(self.loadSettingsJSON('settings13.json'))
+        except Exception as e:
+            self.assertIn('Invalid dict settings: sp_attributeConsumingService_index_not_found', str(e))
+
     def testLoadSettingsFromInvalidData(self):
         """
         Tests the OneLogin_Saml2_Settings Constructor.
