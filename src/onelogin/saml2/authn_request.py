@@ -22,7 +22,15 @@ class OneLogin_Saml2_Authn_Request(object):
 
     """
 
-    def __init__(self, settings, force_authn=False, is_passive=False, set_nameid_policy=True, name_id_value_req=None, attr_consuming_service_index=None):
+    def __init__(
+            self,
+            settings,
+            force_authn=False,
+            is_passive=False,
+            set_nameid_policy=True,
+            name_id_value_req=None,
+            attr_consuming_service_index=None
+    ):
         """
         Constructs the AuthnRequest object.
 
@@ -40,6 +48,9 @@ class OneLogin_Saml2_Authn_Request(object):
 
         :param name_id_value_req: Optional argument. Indicates to the IdP the subject that should be authenticated
         :type name_id_value_req: string
+
+        :param attr_consuming_service_index: Optional argument. Indicates the AttributeConsumingServiceIndex attribute
+        :type attr_consuming_service_index: string
         """
         self._settings = settings
 
