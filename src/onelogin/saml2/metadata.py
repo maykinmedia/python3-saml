@@ -11,6 +11,8 @@ Metadata class of OneLogin's Python Toolkit.
 
 from time import gmtime, strftime, time
 from datetime import datetime
+from OpenSSL import crypto
+import binascii
 
 from onelogin.saml2 import compat
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
@@ -218,16 +220,28 @@ class OneLogin_Saml2_Metadata(object):
         return OneLogin_Saml2_Utils.add_sign(metadata, key, cert, False, sign_algorithm, digest_algorithm, key_passphrase=key_passphrase)
 
     @staticmethod
-    def _add_x509_key_descriptors(root, cert, signing):
+    def _add_x509_key_descriptors(root, cert, use=None):
         key_descriptor = OneLogin_Saml2_XML.make_child(root, '{%s}KeyDescriptor' % OneLogin_Saml2_Constants.NS_MD)
         root.remove(key_descriptor)
         root.insert(0, key_descriptor)
         key_info = OneLogin_Saml2_XML.make_child(key_descriptor, '{%s}KeyInfo' % OneLogin_Saml2_Constants.NS_DS)
+
+        key_name = OneLogin_Saml2_XML.make_child(key_info, '{%s}KeyName' % OneLogin_Saml2_Constants.NS_DS)
+        x509_certificate = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
+        certificate = x509_certificate.to_cryptography()
+        key_name.text = binascii.hexlify(
+            certificate.fingerprint(certificate.signature_hash_algorithm)
+        ).decode("ascii")
+
         key_data = OneLogin_Saml2_XML.make_child(key_info, '{%s}X509Data' % OneLogin_Saml2_Constants.NS_DS)
 
         x509_certificate = OneLogin_Saml2_XML.make_child(key_data, '{%s}X509Certificate' % OneLogin_Saml2_Constants.NS_DS)
         x509_certificate.text = OneLogin_Saml2_Utils.format_cert(cert, False)
-        key_descriptor.set('use', ('encryption', 'signing')[signing])
+
+        if use:
+            if use not in ['encryption', 'signing']:
+                raise Exception('@use attribute of KeyDescriptor element can only be encryption or signing')
+            key_descriptor.set('use', use)
 
     @classmethod
     def add_x509_key_descriptors(cls, metadata, cert=None, add_encryption=True):
@@ -260,7 +274,11 @@ class OneLogin_Saml2_Metadata(object):
         except StopIteration:
             raise Exception('Malformed metadata.')
 
+        # If the same certificate is used for both signing and encryption, one can add only one KeyDescriptor element
+        # without any @use attribute (one could alternatively add 2 KeyDescriptor elements, one with use='encryption'
+        # and the other with use='signing' attribute)
         if add_encryption:
-            cls._add_x509_key_descriptors(sp_sso_descriptor, cert, False)
-        cls._add_x509_key_descriptors(sp_sso_descriptor, cert, True)
+            cls._add_x509_key_descriptors(sp_sso_descriptor, cert)
+        else:
+            cls._add_x509_key_descriptors(sp_sso_descriptor, cert, use='signing')
         return OneLogin_Saml2_XML.to_string(root)
