@@ -272,17 +272,27 @@ class OneLogin_Saml2_Metadata_Test(unittest.TestCase):
         metadata_without_descriptors = OneLogin_Saml2_Metadata.add_x509_key_descriptors(metadata, None)
         self.assertNotIn('<md:KeyDescriptor use="signing"', metadata_without_descriptors)
         self.assertNotIn('<md:KeyDescriptor use="encryption"', metadata_without_descriptors)
+        self.assertNotIn('<md:KeyDescriptor>', metadata_without_descriptors)
 
         metadata_without_descriptors = OneLogin_Saml2_Metadata.add_x509_key_descriptors(metadata, '')
         self.assertNotIn('<md:KeyDescriptor use="signing"', metadata_without_descriptors)
         self.assertNotIn('<md:KeyDescriptor use="encryption"', metadata_without_descriptors)
+        self.assertNotIn('<md:KeyDescriptor>', metadata_without_descriptors)
 
         cert_path = settings.get_cert_path()
         cert = self.file_contents(join(cert_path, 'sp.crt'))
 
-        metadata_with_descriptors = compat.to_string(OneLogin_Saml2_Metadata.add_x509_key_descriptors(metadata, cert))
-        self.assertIn('<md:KeyDescriptor use="signing"', metadata_with_descriptors)
-        self.assertIn('<md:KeyDescriptor use="encryption"', metadata_with_descriptors)
+        metadata_with_descriptor = compat.to_string(OneLogin_Saml2_Metadata.add_x509_key_descriptors(metadata, cert))
+        self.assertNotIn('<md:KeyDescriptor use="signing"', metadata_with_descriptor)
+        self.assertNotIn('<md:KeyDescriptor use="encryption"', metadata_with_descriptor)
+        self.assertIn('<md:KeyDescriptor>', metadata_with_descriptor)
+
+        metadata_with_descriptor = compat.to_string(
+            OneLogin_Saml2_Metadata.add_x509_key_descriptors(metadata, cert, add_encryption=False)
+        )
+        self.assertIn('<md:KeyDescriptor use="signing"', metadata_with_descriptor)
+        self.assertNotIn('<md:KeyDescriptor use="encryption"', metadata_with_descriptor)
+        self.assertNotIn('<md:KeyDescriptor>', metadata_with_descriptor)
 
         with self.assertRaises(Exception) as context:
             OneLogin_Saml2_Metadata.add_x509_key_descriptors('', cert)
