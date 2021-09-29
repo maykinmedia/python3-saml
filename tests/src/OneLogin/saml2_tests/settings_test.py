@@ -511,9 +511,9 @@ class OneLogin_Saml2_Settings_Test(unittest.TestCase):
         settings_info['security']['wantAssertionsEncrypted'] = True
         settings = OneLogin_Saml2_Settings(settings_info)
         metadata = compat.to_string(settings.get_sp_metadata())
-        self.assertEqual(2, metadata.count('<md:KeyDescriptor'))
-        self.assertEqual(1, metadata.count('<md:KeyDescriptor use="signing"'))
-        self.assertEqual(1, metadata.count('<md:KeyDescriptor use="encryption"'))
+        self.assertEqual(1, metadata.count('<md:KeyDescriptor>'))
+        self.assertEqual(0, metadata.count('<md:KeyDescriptor use="signing"'))
+        self.assertEqual(0, metadata.count('<md:KeyDescriptor use="encryption"'))
 
     def testGetSPMetadataWithx509certNew(self):
         """
@@ -527,6 +527,9 @@ class OneLogin_Saml2_Settings_Test(unittest.TestCase):
         metadata = compat.to_string(settings.get_sp_metadata())
         self.assertNotEqual(len(metadata), 0)
         self.assertIn('<md:SPSSODescriptor', metadata)
+        # Response has no Signature, but contains 2 Key descriptors in the SPSSODescriptor element, because one is with
+        # the old certificate and the other has the new certificate (used for rollover period before replacing a
+        # certificate)
         self.assertEqual(2, metadata.count('<md:KeyDescriptor'))
         self.assertEqual(2, metadata.count('<md:KeyDescriptor use="signing"'))
         self.assertEqual(0, metadata.count('<md:KeyDescriptor use="encryption"'))
@@ -535,9 +538,10 @@ class OneLogin_Saml2_Settings_Test(unittest.TestCase):
         settings_info['security']['wantAssertionsEncrypted'] = False
         settings = OneLogin_Saml2_Settings(settings_info)
         metadata = compat.to_string(settings.get_sp_metadata())
-        self.assertEqual(4, metadata.count('<md:KeyDescriptor'))
-        self.assertEqual(2, metadata.count('<md:KeyDescriptor use="signing"'))
-        self.assertEqual(2, metadata.count('<md:KeyDescriptor use="encryption"'))
+        # Now the certificates are used for both signing/encrypting, so the @use attribute is not needed
+        self.assertEqual(2, metadata.count('<md:KeyDescriptor>'))
+        self.assertEqual(0, metadata.count('<md:KeyDescriptor use="signing"'))
+        self.assertEqual(0, metadata.count('<md:KeyDescriptor use="encryption"'))
 
     def testGetSPMetadataSigned(self):
         """
