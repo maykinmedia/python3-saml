@@ -40,6 +40,7 @@ setup(
         'xmlsec>=1.3.9',
         'defusedxml>=0.5.0',
         'requests>=2.24.0',
+        'pyOpenSSL>=19.1.0',
     ],
     dependency_links=['http://github.com/mehcode/python-xmlsec/tarball/master'],
     extras_require={
