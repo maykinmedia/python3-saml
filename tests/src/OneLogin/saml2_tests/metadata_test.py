@@ -64,7 +64,7 @@ class OneLogin_Saml2_Metadata_Test(unittest.TestCase):
 
         self.assertIn('<md:OrganizationName xml:lang="en-US">sp_test</md:OrganizationName>', metadata)
         self.assertIn('<md:ContactPerson contactType="technical">', metadata)
-        self.assertIn('<md:GivenName>technical_name</md:GivenName>', metadata)
+        self.assertIn('<md:TelephoneNumber>01111111111</md:TelephoneNumber>', metadata)
 
         security['authnRequestsSigned'] = True
         security['wantAssertionsSigned'] = True
