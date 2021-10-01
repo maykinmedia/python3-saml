@@ -3,8 +3,7 @@
 # Copyright (c) 2010-2021 OneLogin, Inc.
 # MIT License
 
-from base64 import b64decode
-
+from base64 import b64decode, b64encode
 from lxml import etree
 from datetime import datetime
 from datetime import timedelta
@@ -16,9 +15,11 @@ from xml.dom.minidom import parseString
 
 from onelogin.saml2 import compat
 from onelogin.saml2.errors import OneLogin_Saml2_ValidationError
+from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from onelogin.saml2.response import OneLogin_Saml2_Response
 from onelogin.saml2.settings import OneLogin_Saml2_Settings
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
+from onelogin.saml2.xml_utils import OneLogin_Saml2_XML
 
 
 class OneLogin_Saml2_Response_Test(unittest.TestCase):
@@ -693,10 +694,28 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         response_2 = OneLogin_Saml2_Response(settings, xml_2)
         self.assertEqual({}, response_2.get_attributes())
 
-        # Encrypted Attributes are not supported
-        xml_3 = self.file_contents(join(self.data_path, 'responses', 'invalids', 'encrypted_attrs.xml.base64'))
-        response_3 = OneLogin_Saml2_Response(settings, xml_3)
-        self.assertEqual({}, response_3.get_attributes())
+    def testGetAttributesExtended(self):
+        """
+        Tests the getAttributes method of the OneLogin_Saml2_Response
+        """
+        settings = OneLogin_Saml2_Settings(self.loadSettingsJSON())
+        xml = self.file_contents(join(self.data_path, 'responses', 'response6.xml.base64'))
+        response = OneLogin_Saml2_Response(settings, xml)
+        expected_attributes = {
+            'uid': [
+                {'AttributeValue': {
+                    'attrib': {'Soort': 'demo', '{http://www.w3.org/2001/XMLSchema-instance}type': 'xs:string'},
+                    'value': 'demo',
+                }}
+            ],
+            'another_value': [
+                {'AttributeValue': {
+                    'attrib': {'Soort': 'value', '{http://www.w3.org/2001/XMLSchema-instance}type': 'xs:string'},
+                    'value': 'value',
+                }}
+            ],
+        }
+        self.assertEqual(expected_attributes, response.get_attributes(extended_output=True))
 
         # Test retrieving duplicate attributes
         xml_4 = self.file_contents(join(self.data_path, 'responses',
@@ -736,10 +755,6 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         xml_3 = self.file_contents(join(self.data_path, 'responses', 'response2.xml.base64'))
         response_3 = OneLogin_Saml2_Response(settings, xml_3)
         self.assertEqual({}, response_3.get_friendlyname_attributes())
-
-        xml_4 = self.file_contents(join(self.data_path, 'responses', 'invalids', 'encrypted_attrs.xml.base64'))
-        response_4 = OneLogin_Saml2_Response(settings, xml_4)
-        self.assertEqual({}, response_4.get_friendlyname_attributes())
 
         # Test retrieving duplicate attributes
         xml_5 = self.file_contents(join(self.data_path, 'responses',
@@ -880,7 +895,7 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         settings.set_strict(True)
         response_2 = OneLogin_Saml2_Response(settings, message)
         self.assertFalse(response_2.is_valid(request_data))
-        self.assertEqual('Invalid SAML Response. Not match the saml-schema-protocol-2.0.xsd', response_2.get_error())
+        self.assertEqual('Invalid SAML Response. Not match the access_control-xacml-2.0-saml-assertion-schema-os.xsd', response_2.get_error())
 
     def testValidateNumAssertions(self):
         """
@@ -1042,22 +1057,6 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         with self.assertRaisesRegex(Exception, 'SAML Response must contain 1 assertion'):
             response.is_valid(self.get_request_data(), raise_exceptions=True)
 
-    def testIsInValidEncAttrs(self):
-        """
-        Tests the is_valid method of the OneLogin_Saml2_Response
-        Case invalid Encrypted Attrs
-        """
-        settings = OneLogin_Saml2_Settings(self.loadSettingsJSON())
-        xml = self.file_contents(join(self.data_path, 'responses', 'invalids', 'encrypted_attrs.xml.base64'))
-        response = OneLogin_Saml2_Response(settings, xml)
-        response.is_valid(self.get_request_data())
-        self.assertEqual('No Signature found. SAML Response rejected', response.get_error())
-
-        settings.set_strict(True)
-        response_2 = OneLogin_Saml2_Response(settings, xml)
-        with self.assertRaisesRegex(Exception, 'There is an EncryptedAttribute in the Response and this SP not support them'):
-            response_2.is_valid(self.get_request_data(), raise_exceptions=True)
-
     def testIsInValidDuplicatedAttrs(self):
         """
         Tests the getAttributes method of the OneLogin_Saml2_Response
@@ -1145,6 +1144,7 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         # Assert we got past the destination check, which appears later
         self.assertIn('A valid SubjectConfirmation was not found', response.get_error())
 
+    @freeze_time("2021-06-17")
     def testIsInValidAudience(self):
         """
         Tests the is_valid method of the OneLogin_Saml2_Response class
@@ -1205,6 +1205,7 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         response.is_valid(request_data)
         self.assertIn('The response was received at', response.get_error())
 
+    @freeze_time("2021-06-17")
     def testIsInValidIssuer(self):
         """
         Tests the is_valid method of the OneLogin_Saml2_Response class
@@ -1243,6 +1244,7 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         with self.assertRaisesRegex(Exception, 'Invalid issuer in the Assertion/Response'):
             response_4.is_valid(request_data, raise_exceptions=True)
 
+    @freeze_time("2021-06-17")
     def testIsInValidSessionIndex(self):
         """
         Tests the is_valid method of the OneLogin_Saml2_Response class
@@ -1289,6 +1291,7 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         response.is_valid(request_data)
         self.assertEqual('No Signature found. SAML Response rejected', response.get_error())
 
+    @freeze_time("2021-06-17")
     def testIsInValidSubjectConfirmation(self):
         """
         Tests the is_valid method of the OneLogin_Saml2_Response class
@@ -1919,3 +1922,146 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         response.is_valid(request_data)
         self.assertIsNone(response.get_error())
         self.assertEqual(response.get_assertion_not_on_or_after(), 2671081021)
+
+    def testEncryptedId(self):
+        """
+        Test that decrypting EncryptedID elements works as expected.
+        """
+        settings = OneLogin_Saml2_Settings(self.loadSettingsJSON())
+
+        base64_content = self.file_contents(join(self.data_path, 'responses', 'valid_unsigned_response.xml.base64'))
+        xml = b64decode(base64_content)
+        response_element = OneLogin_Saml2_XML.to_etree(xml)
+
+        # Add an EncryptedID element to the existing response.
+        encrypted_id = OneLogin_Saml2_Utils.generate_name_id(
+            "123456782",
+            sp_nq=None,
+            nq="urn:etoegang:1.9:EntityConcernedID:RSIN",
+            sp_format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+            cert=settings.get_sp_cert(),
+        )
+        attribute = (
+            '<saml:Attribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" FriendlyName="ActingSubjectID" Name="urn:etoegang:core:LegalSubjectID">'
+            "<saml:AttributeValue>" +
+            encrypted_id +
+            "</saml:AttributeValue></saml:Attribute>"
+        )
+        statement_element = OneLogin_Saml2_XML.query(response_element, '//saml:AttributeStatement')
+        encrypted_attribute_element = OneLogin_Saml2_XML.to_etree(attribute)
+        statement_element[0].append(encrypted_attribute_element)
+
+        # Try to parse the Response
+        response = OneLogin_Saml2_Response(
+            settings, b64encode(OneLogin_Saml2_XML.to_string(response_element))
+        )
+        response.is_valid(self.get_request_data())
+        attributes = response.get_attributes()
+
+        self.assertEqual(
+            attributes['urn:etoegang:core:LegalSubjectID'],
+            [
+                {
+                    'NameID': {
+                        'Format': 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent',
+                        'NameQualifier': 'urn:etoegang:1.9:EntityConcernedID:RSIN',
+                        'value': '123456782'
+                    }
+                }
+            ]
+        )
+
+    def testEncryptedAttribute(self):
+        """
+        Test that decrypting EncryptedAttribute elements works as expected.
+        """
+        settings = OneLogin_Saml2_Settings(self.loadSettingsJSON())
+
+        base64_content = self.file_contents(join(self.data_path, 'responses', 'valid_unsigned_response.xml.base64'))
+        xml = b64decode(base64_content)
+        response_element = OneLogin_Saml2_XML.to_etree(xml)
+
+        attribute = OneLogin_Saml2_XML.make_root('{%s}Attribute' % OneLogin_Saml2_Constants.NS_SAML)
+        attribute.set('Name', "urn:etoegang:1.11:attribute-represented:CompanyName")
+        attribute.set('NameFormat', "urn:oasis:names:tc:SAML:2.0:attrname-format:uri")
+        attribute.set('{urn:oasis:names:tc:SAML:attribute:ext}LastModified', "2019-03-12T14:20:46.113Z")
+
+        attribute_value = OneLogin_Saml2_XML.make_child(attribute, '{%s}AttributeValue' % OneLogin_Saml2_Constants.NS_SAML)
+        attribute_value.text = 'Maykin Media B.V.'
+
+        encrypted_attribute = (
+            '<saml:EncryptedAttribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" '
+            'xmlns:xenc="http://www.w3.org/2001/04/xmlenc#">' +
+            OneLogin_Saml2_Utils.encrypt_element(attribute, cert=settings.get_sp_cert()) +
+            '</saml:EncryptedAttribute>'
+        )
+        statement_element = OneLogin_Saml2_XML.query(response_element, '//saml:AttributeStatement')
+        encrypted_attribute_element = OneLogin_Saml2_XML.to_etree(encrypted_attribute)
+        statement_element[0].append(encrypted_attribute_element)
+
+        # Try to parse the Response
+        response = OneLogin_Saml2_Response(
+            settings, b64encode(OneLogin_Saml2_XML.to_string(response_element))
+        )
+        response.is_valid(self.get_request_data())
+        attributes = response.get_attributes()
+
+        self.assertEqual(
+            attributes['urn:etoegang:1.11:attribute-represented:CompanyName'],
+            ['Maykin Media B.V.']
+        )
+
+    def testEncryptedAttributeCarriedKeyName(self):
+        """
+        Test that decrypting EncryptedAttribute elements works as expected when using CarriedKeyName
+        instead of the 'RetrievalMethod' mechanism.
+        """
+        settings = OneLogin_Saml2_Settings(self.loadSettingsJSON())
+
+        base64_content = self.file_contents(join(self.data_path, 'responses', 'valid_unsigned_response.xml.base64'))
+        xml = b64decode(base64_content)
+        response_element = OneLogin_Saml2_XML.to_etree(xml)
+
+        attribute = OneLogin_Saml2_XML.make_root('{%s}Attribute' % OneLogin_Saml2_Constants.NS_SAML)
+        attribute.set('Name', "urn:etoegang:1.11:attribute-represented:CompanyName")
+        attribute.set('NameFormat', "urn:oasis:names:tc:SAML:2.0:attrname-format:uri")
+        attribute.set('{urn:oasis:names:tc:SAML:attribute:ext}LastModified', "2019-03-12T14:20:46.113Z")
+
+        attribute_value = OneLogin_Saml2_XML.make_child(attribute, '{%s}AttributeValue' % OneLogin_Saml2_Constants.NS_SAML)
+        attribute_value.text = 'Maykin Media B.V.'
+
+        encrypted_data = OneLogin_Saml2_Utils.encrypt_element(attribute, cert=settings.get_sp_cert())
+        _encrypted_data = OneLogin_Saml2_XML.to_etree(encrypted_data)
+
+        _encrypted_key = OneLogin_Saml2_XML.query(_encrypted_data, '//ds:KeyInfo/xenc:EncryptedKey')[0]
+        _encrypted_key.getparent().remove(_encrypted_key)
+
+        _key_info = OneLogin_Saml2_XML.query(_encrypted_data, '//ds:KeyInfo')[0]
+        _key_name = etree.SubElement(_key_info, '{http://www.w3.org/2000/09/xmldsig#}KeyName')
+        _key_name.text = '_abcdef0123456789'
+
+        _carried_key_name = etree.SubElement(_encrypted_key, '{http://www.w3.org/2001/04/xmlenc#}CarriedKeyName')
+        _carried_key_name.text = '_abcdef0123456789'
+
+        encrypted_attribute = (
+            '<saml:EncryptedAttribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" '
+            'xmlns:xenc="http://www.w3.org/2001/04/xmlenc#">' +
+            OneLogin_Saml2_XML.to_string(_encrypted_data).decode('utf-8') +
+            OneLogin_Saml2_XML.to_string(_encrypted_key).decode('utf-8') +
+            '</saml:EncryptedAttribute>'
+        )
+        statement_element = OneLogin_Saml2_XML.query(response_element, '//saml:AttributeStatement')
+        encrypted_attribute_element = OneLogin_Saml2_XML.to_etree(encrypted_attribute)
+        statement_element[0].append(encrypted_attribute_element)
+
+        # Try to parse the Response
+        response = OneLogin_Saml2_Response(
+            settings, b64encode(OneLogin_Saml2_XML.to_string(response_element))
+        )
+        response.is_valid(self.get_request_data())
+        attributes = response.get_attributes()
+
+        self.assertEqual(
+            attributes['urn:etoegang:1.11:attribute-represented:CompanyName'],
+            ['Maykin Media B.V.']
+        )

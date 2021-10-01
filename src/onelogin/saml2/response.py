@@ -101,8 +101,8 @@ class OneLogin_Saml2_Response(object):
             has_signed_assertion = '{%s}Assertion' % OneLogin_Saml2_Constants.NS_SAML in signed_elements
 
             if self._settings.is_strict():
-                no_valid_xml_msg = 'Invalid SAML Response. Not match the saml-schema-protocol-2.0.xsd'
-                res = OneLogin_Saml2_XML.validate_xml(self.document, 'saml-schema-protocol-2.0.xsd', self._settings.is_debug_active())
+                no_valid_xml_msg = 'Invalid SAML Response. Not match the access_control-xacml-2.0-saml-assertion-schema-os.xsd'
+                res = OneLogin_Saml2_XML.validate_xml(self.document, 'access_control-xacml-2.0-saml-assertion-schema-os.xsd', self._settings.is_debug_active())
                 if isinstance(res, str):
                     raise OneLogin_Saml2_ValidationError(
                         no_valid_xml_msg,
@@ -111,7 +111,7 @@ class OneLogin_Saml2_Response(object):
 
                 # If encrypted, check also the decrypted document
                 if self.encrypted:
-                    res = OneLogin_Saml2_XML.validate_xml(self.decrypted_document, 'saml-schema-protocol-2.0.xsd', self._settings.is_debug_active())
+                    res = OneLogin_Saml2_XML.validate_xml(self.decrypted_document, 'access_control-xacml-2.0-saml-assertion-schema-os.xsd', self._settings.is_debug_active())
                     if isinstance(res, str):
                         raise OneLogin_Saml2_ValidationError(
                             no_valid_xml_msg,
@@ -334,17 +334,24 @@ class OneLogin_Saml2_Response(object):
         :raises: Exception. If the status is not success
         """
         status = OneLogin_Saml2_Utils.get_status(self.document)
-        code = status.get('code', None)
-        if code and code != OneLogin_Saml2_Constants.STATUS_SUCCESS:
-            splited_code = code.split(':')
+        codes = status.get('codes', None)
+        if codes and codes[0] != OneLogin_Saml2_Constants.STATUS_SUCCESS:
+            splited_code = codes[0].split(':')
             printable_code = splited_code.pop()
             status_exception_msg = 'The status code of the Response was not Success, was %s' % printable_code
             status_msg = status.get('msg', None)
             if status_msg:
                 status_exception_msg += ' -> ' + status_msg
+
+            exception_code = OneLogin_Saml2_ValidationError.STATUS_CODE_IS_NOT_SUCCESS
+
+            # See SAMLCore - 3.2.2.2. AuthnFailed is a second-level status code.
+            if len(codes) >= 2 and codes[1] == OneLogin_Saml2_Constants.STATUS_AUTHN_FAILED:
+                exception_code = OneLogin_Saml2_ValidationError.STATUS_CODE_AUTHNFAILED
+
             raise OneLogin_Saml2_ValidationError(
                 status_exception_msg,
-                OneLogin_Saml2_ValidationError.STATUS_CODE_IS_NOT_SUCCESS
+                exception_code
             )
 
     def check_one_condition(self):
@@ -443,7 +450,10 @@ class OneLogin_Saml2_Response(object):
         if encrypted_id_data_nodes:
             encrypted_data = encrypted_id_data_nodes[0]
             key = self._settings.get_sp_key()
-            nameid = OneLogin_Saml2_Utils.decrypt_element(encrypted_data, key)
+            nameid = OneLogin_Saml2_Utils.decrypt_element(
+                encrypted_data, key,
+                key_passphrase=self._settings.get_sp_key_passphrase(),
+            )
         else:
             nameid_nodes = self._query_assertion('/saml:Subject/saml:NameID')
             if nameid_nodes:
@@ -568,12 +578,11 @@ class OneLogin_Saml2_Response(object):
             session_index = authn_statement_nodes[0].get('SessionIndex')
         return session_index
 
-    def get_attributes(self):
+    def get_attributes(self, extended_output=False):
         """
         Gets the Attributes from the AttributeStatement element.
-        EncryptedAttributes are not supported
         """
-        return self._get_attributes('Name')
+        return self._get_attributes('Name', extended_output)
 
     def get_friendlyname_attributes(self):
         """
@@ -582,10 +591,25 @@ class OneLogin_Saml2_Response(object):
         """
         return self._get_attributes('FriendlyName')
 
-    def _get_attributes(self, attr_name):
+    def _get_attributes(self, attr_name, extended_output=False):
         allow_duplicates = self._settings.get_security_data().get('allowRepeatAttributeName', False)
         attributes = {}
-        attribute_nodes = self._query_assertion('/saml:AttributeStatement/saml:Attribute')
+        encrypted_attribute_nodes = self._query_assertion('/saml:AttributeStatement/saml:EncryptedAttribute')
+        decrypted_attribute_nodes = []
+        for encrypted_attribute_node in encrypted_attribute_nodes:
+            key = self._settings.get_sp_key()
+            self._prepare_keyinfo(encrypted_attribute_node)
+            encrypted_data = encrypted_attribute_node.getchildren()[0]
+            # TODO: When not doing an inplace decrypt_element, the 'saml' namespace
+            # does not end up in the nsmap of the decrypted element, and the iterChildren of the saml:AttributeValue
+            # does not pick up the decrypted element. Instead use the inplace=True to circumvent this problem.
+            decrypted_attribute_nodes.append(OneLogin_Saml2_Utils.decrypt_element(
+                encrypted_data, key,
+                key_passphrase=self._settings.get_sp_key_passphrase(),
+                inplace=True,
+            ))
+
+        attribute_nodes = self._query_assertion('/saml:AttributeStatement/saml:Attribute') + decrypted_attribute_nodes
         for attribute_node in attribute_nodes:
             attr_key = attribute_node.get(attr_name)
             if attr_key:
@@ -598,10 +622,35 @@ class OneLogin_Saml2_Response(object):
                 values = []
                 for attr in attribute_node.iterchildren('{%s}AttributeValue' % OneLogin_Saml2_Constants.NSMAP['saml']):
                     attr_text = OneLogin_Saml2_XML.element_text(attr)
+                    attr_text = attr_text.strip() if attr_text else attr_text
                     if attr_text:
-                        attr_text = attr_text.strip()
-                        if attr_text:
+                        if extended_output:
+                            values.append({
+                                'AttributeValue': {
+                                    'attrib': attr.attrib,
+                                    'value': attr_text
+                                }
+                            })
+                        else:
                             values.append(attr_text)
+
+                    # Parse encrypted ids
+                    for encrypted_id in attr.iterchildren('{%s}EncryptedID' % OneLogin_Saml2_Constants.NSMAP['saml']):
+                        key = self._settings.get_sp_key()
+                        self._prepare_keyinfo(encrypted_id)
+                        encrypted_data = encrypted_id.getchildren()[0]
+
+                        nameid = OneLogin_Saml2_Utils.decrypt_element(
+                            encrypted_data, key,
+                            key_passphrase=self._settings.get_sp_key_passphrase(),
+                        )
+                        values.append({
+                            'NameID': {
+                                'Format': nameid.get('Format'),
+                                'NameQualifier': nameid.get('NameQualifier'),
+                                'value': nameid.text
+                            }
+                        })
 
                     # Parse any nested NameID children
                     for nameid in attr.iterchildren('{%s}NameID' % OneLogin_Saml2_Constants.NSMAP['saml']):
@@ -625,8 +674,25 @@ class OneLogin_Saml2_Response(object):
         :returns: True if only 1 assertion encrypted or not
         :rtype: bool
         """
-        encrypted_assertion_nodes = OneLogin_Saml2_XML.query(self.document, '//saml:EncryptedAssertion')
-        assertion_nodes = OneLogin_Saml2_XML.query(self.document, '//saml:Assertion')
+        security = self._settings.get_security_data()
+
+        # This is a hack, which I need for digid-eherkenning, since the eHerkenning IDP returns
+        # a Advice-section which contains EncryptedAssertions/Signatures as well. Which are not malicious.
+        #
+        # For eHerkenning in digid-eherkenning a signature wrapping attack is not problematic since the connection
+        # to the IDP is protected by a TLS connection (It uses the Artifact binding). Thus not allow
+        # a malicious user to insert a malicious signature.
+        #
+        # I see two ways for properly fixing this problem:
+        # - Ask the IDP not to send the Advice section in the ArtifactResponse.
+        # - Make sure we verify/decrypt the EncryptedAssertion in the actual response and ignore the Advice section.
+        # My knowledge of this kind of attack is limited, so I'd need to look into that.
+        if security.get('disableSignatureWrappingProtection', False):
+            encrypted_assertion_nodes = OneLogin_Saml2_XML.query(self.document, '/samlp:Response/saml:EncryptedAssertion')
+            assertion_nodes = OneLogin_Saml2_XML.query(self.document, '/samlp:Response/saml:Assertion')
+        else:
+            encrypted_assertion_nodes = OneLogin_Saml2_XML.query(self.document, '//saml:EncryptedAssertion')
+            assertion_nodes = OneLogin_Saml2_XML.query(self.document, '//saml:Assertion')
 
         valid = len(encrypted_assertion_nodes) + len(assertion_nodes) == 1
 
@@ -645,8 +711,11 @@ class OneLogin_Saml2_Response(object):
         :returns: The signed elements tag names
         :rtype: list
         """
-        sign_nodes = self._query('//ds:Signature')
-
+        security = self._settings.get_security_data()
+        if security.get('disableSignatureWrappingProtection', False):
+            sign_nodes = self._query('//ds:Signature[not(ancestor::saml:Advice)]')
+        else:
+            sign_nodes = self._query('//ds:Signature')
         signed_elements = []
         verified_seis = []
         verified_ids = []
@@ -825,6 +894,49 @@ class OneLogin_Saml2_Response(object):
             document = self.document
         return OneLogin_Saml2_XML.query(document, query, None, tagid)
 
+    def _prepare_keyinfo(self, node):
+        """
+        Directly include the EncryptedKey in the KeyInfo of the EncryptedData. This
+        is needed for decrypting with OneLogin_Saml2_Utils.decrypt_element.
+        """
+        encrypted_data_keyinfo = OneLogin_Saml2_XML.query(node, 'xenc:EncryptedData/ds:KeyInfo')
+        if not encrypted_data_keyinfo:
+            raise OneLogin_Saml2_ValidationError(
+                'No KeyInfo present, invalid Assertion',
+                OneLogin_Saml2_ValidationError.KEYINFO_NOT_FOUND_IN_ENCRYPTED_DATA
+            )
+        encrypted_data_keyinfo = encrypted_data_keyinfo[0]
+        children = encrypted_data_keyinfo.getchildren()
+        if not children:
+            raise OneLogin_Saml2_ValidationError(
+                'KeyInfo has no children nodes, invalid Assertion',
+                OneLogin_Saml2_ValidationError.CHILDREN_NODE_NOT_FOUND_IN_KEYINFO
+            )
+        for child in children:
+            # If a 'KeyName' is specified, look for external EncryptedKey elements
+            # which have a CarriedKeyName element with that name.
+            if 'KeyName' in child.tag:
+                carried_key_names = OneLogin_Saml2_XML.query(
+                    node, "./xenc:EncryptedKey/xenc:CarriedKeyName[text()[contains(.,$tagid)]]",
+                    None, child.text
+                )
+                if carried_key_names:
+                    encrypted_data_keyinfo.append(carried_key_names[0].getparent())
+
+            if 'RetrievalMethod' in child.tag:
+                if child.attrib['Type'] != 'http://www.w3.org/2001/04/xmlenc#EncryptedKey':
+                    raise OneLogin_Saml2_ValidationError(
+                        'Unsupported Retrieval Method found',
+                        OneLogin_Saml2_ValidationError.UNSUPPORTED_RETRIEVAL_METHOD
+                    )
+                uri = child.attrib['URI']
+                if not uri.startswith('#'):
+                    break
+                uri = uri.split('#')[1]
+                encrypted_key = OneLogin_Saml2_XML.query(node, './xenc:EncryptedKey[@Id=$tagid]', None, uri)
+                if encrypted_key:
+                    encrypted_data_keyinfo.append(encrypted_key[0])
+
     def _decrypt_assertion(self, xml):
         """
         Decrypts the Assertion
@@ -848,36 +960,14 @@ class OneLogin_Saml2_Response(object):
         if encrypted_assertion_nodes:
             encrypted_data_nodes = OneLogin_Saml2_XML.query(encrypted_assertion_nodes[0], '//saml:EncryptedAssertion/xenc:EncryptedData')
             if encrypted_data_nodes:
-                keyinfo = OneLogin_Saml2_XML.query(encrypted_assertion_nodes[0], '//saml:EncryptedAssertion/xenc:EncryptedData/ds:KeyInfo')
-                if not keyinfo:
-                    raise OneLogin_Saml2_ValidationError(
-                        'No KeyInfo present, invalid Assertion',
-                        OneLogin_Saml2_ValidationError.KEYINFO_NOT_FOUND_IN_ENCRYPTED_DATA
-                    )
-                keyinfo = keyinfo[0]
-                children = keyinfo.getchildren()
-                if not children:
-                    raise OneLogin_Saml2_ValidationError(
-                        'KeyInfo has no children nodes, invalid Assertion',
-                        OneLogin_Saml2_ValidationError.CHILDREN_NODE_NOT_FOUND_IN_KEYINFO
-                    )
-                for child in children:
-                    if 'RetrievalMethod' in child.tag:
-                        if child.attrib['Type'] != 'http://www.w3.org/2001/04/xmlenc#EncryptedKey':
-                            raise OneLogin_Saml2_ValidationError(
-                                'Unsupported Retrieval Method found',
-                                OneLogin_Saml2_ValidationError.UNSUPPORTED_RETRIEVAL_METHOD
-                            )
-                        uri = child.attrib['URI']
-                        if not uri.startswith('#'):
-                            break
-                        uri = uri.split('#')[1]
-                        encrypted_key = OneLogin_Saml2_XML.query(encrypted_assertion_nodes[0], './xenc:EncryptedKey[@Id=$tagid]', None, uri)
-                        if encrypted_key:
-                            keyinfo.append(encrypted_key[0])
-
                 encrypted_data = encrypted_data_nodes[0]
-                decrypted = OneLogin_Saml2_Utils.decrypt_element(encrypted_data, key, debug=debug, inplace=True)
+                self._prepare_keyinfo(encrypted_data.getparent())
+
+                decrypted = OneLogin_Saml2_Utils.decrypt_element(
+                    encrypted_data, key,
+                    key_passphrase=self._settings.get_sp_key_passphrase(),
+                    debug=debug, inplace=True,
+                )
                 xml.replace(encrypted_assertion_nodes[0], decrypted)
         return xml
 

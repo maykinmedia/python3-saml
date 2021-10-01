@@ -179,6 +179,12 @@ class OneLogin_Saml2_Utils(object):
                 private_key = private_key.replace(' ', '')
                 if heads:
                     private_key = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(wrap(private_key, 64)) + "\n-----END PRIVATE KEY-----\n"
+            elif private_key.find('-----BEGIN ENCRYPTED PRIVATE KEY-----') != -1:
+                private_key = private_key.replace('-----BEGIN ENCRYPTED PRIVATE KEY-----', '')
+                private_key = private_key.replace('-----END ENCRYPTED PRIVATE KEY-----', '')
+                private_key = private_key.replace(' ', '')
+                if heads:
+                    private_key = "-----BEGIN ENCRYPTED PRIVATE KEY-----\n" + "\n".join(wrap(private_key, 64)) + "\n-----END ENCRYPTED PRIVATE KEY-----\n"
             else:
                 private_key = private_key.replace('-----BEGIN RSA PRIVATE KEY-----', '')
                 private_key = private_key.replace('-----END RSA PRIVATE KEY-----', '')
@@ -560,8 +566,8 @@ class OneLogin_Saml2_Utils(object):
         formatted_fingerprint = fingerprint.replace(':', '')
         return formatted_fingerprint.lower()
 
-    @staticmethod
-    def generate_name_id(value, sp_nq, sp_format=None, cert=None, debug=False, nq=None):
+    @classmethod
+    def generate_name_id(cls, value, sp_nq, sp_format=None, cert=None, debug=False, nq=None):
         """
         Generates a nameID.
 
@@ -587,8 +593,7 @@ class OneLogin_Saml2_Utils(object):
         :type: string
         """
 
-        root = OneLogin_Saml2_XML.make_root("{%s}container" % OneLogin_Saml2_Constants.NS_SAML)
-        name_id = OneLogin_Saml2_XML.make_child(root, '{%s}NameID' % OneLogin_Saml2_Constants.NS_SAML)
+        name_id = OneLogin_Saml2_XML.make_root('{%s}NameID' % OneLogin_Saml2_Constants.NS_SAML)
         if sp_nq is not None:
             name_id.set('SPNameQualifier', sp_nq)
         if sp_format is not None:
@@ -598,62 +603,58 @@ class OneLogin_Saml2_Utils(object):
         name_id.text = value
 
         if cert is not None:
-            xmlsec.enable_debug_trace(debug)
-
-            # Load the public cert
-            manager = xmlsec.KeysManager()
-            manager.add_key(xmlsec.Key.from_memory(cert, xmlsec.KeyFormat.CERT_PEM, None))
-
-            # Prepare for encryption
-            enc_data = xmlsec.template.encrypted_data_create(
-                root, xmlsec.Transform.AES128, type=xmlsec.EncryptionType.ELEMENT, ns="xenc")
-
-            xmlsec.template.encrypted_data_ensure_cipher_value(enc_data)
-            key_info = xmlsec.template.encrypted_data_ensure_key_info(enc_data, ns="dsig")
-            enc_key = xmlsec.template.add_encrypted_key(key_info, xmlsec.Transform.RSA_OAEP)
-            xmlsec.template.encrypted_data_ensure_cipher_value(enc_key)
-
-            # Encrypt!
-            enc_ctx = xmlsec.EncryptionContext(manager)
-            enc_ctx.key = xmlsec.Key.generate(xmlsec.KeyData.AES, 128, xmlsec.KeyDataType.SESSION)
-            enc_data = enc_ctx.encrypt_xml(enc_data, name_id)
-            return '<saml:EncryptedID>' + compat.to_string(OneLogin_Saml2_XML.to_string(enc_data)) + '</saml:EncryptedID>'
+            return '<saml:EncryptedID>' + cls.encrypt_element(name_id, cert, debug=debug) + '</saml:EncryptedID>'
         else:
+            root = OneLogin_Saml2_XML.make_root("{%s}container" % OneLogin_Saml2_Constants.NS_SAML)
+            root.append(name_id)
             return OneLogin_Saml2_XML.extract_tag_text(root, "saml:NameID")
 
-    @staticmethod
-    def get_status(dom):
+    @classmethod
+    def get_status(cls, dom):
         """
         Gets Status from a Response.
 
         :param dom: The Response as XML
         :type: Document
 
-        :returns: The Status, an array with the code and a message.
+        :returns: The Status, an array with the code and a message. 'code' entry is the
+                  topmost StatusCode, and 'codes' entry contains the StatusCodes in document
+                  order.
         :rtype: dict
         """
+        doc = OneLogin_Saml2_XML.query(dom, '/samlp:Response')
+        if len(doc) != 1:
+            raise OneLogin_Saml2_ValidationError(
+                'Missing Status on response',
+                OneLogin_Saml2_ValidationError.MISSING_STATUS
+            )
+
+        return cls.get_specific_status(doc[0])
+
+    @staticmethod
+    def get_specific_status(doc):
         status = {}
 
-        status_entry = OneLogin_Saml2_XML.query(dom, '/samlp:Response/samlp:Status')
+        status_entry = OneLogin_Saml2_XML.query(doc, './samlp:Status')
         if len(status_entry) != 1:
             raise OneLogin_Saml2_ValidationError(
                 'Missing Status on response',
                 OneLogin_Saml2_ValidationError.MISSING_STATUS
             )
 
-        code_entry = OneLogin_Saml2_XML.query(dom, '/samlp:Response/samlp:Status/samlp:StatusCode', status_entry[0])
-        if len(code_entry) != 1:
+        code_entries = OneLogin_Saml2_XML.query(doc, './/samlp:StatusCode', status_entry[0])
+        if not code_entries:
             raise OneLogin_Saml2_ValidationError(
                 'Missing Status Code on response',
                 OneLogin_Saml2_ValidationError.MISSING_STATUS_CODE
             )
-        code = code_entry[0].values()[0]
-        status['code'] = code
+        status['codes'] = [c.get('Value') for c in code_entries]
+        status['code'] = status['codes'][0]
 
         status['msg'] = ''
-        message_entry = OneLogin_Saml2_XML.query(dom, '/samlp:Response/samlp:Status/samlp:StatusMessage', status_entry[0])
+        message_entry = OneLogin_Saml2_XML.query(doc, './samlp:StatusMessage', status_entry[0])
         if len(message_entry) == 0:
-            subcode_entry = OneLogin_Saml2_XML.query(dom, '/samlp:Response/samlp:Status/samlp:StatusCode/samlp:StatusCode', status_entry[0])
+            subcode_entry = OneLogin_Saml2_XML.query(doc, './samlp:StatusCode/samlp:StatusCode', status_entry[0])
             if len(subcode_entry) == 1:
                 status['msg'] = subcode_entry[0].values()[0]
         elif len(message_entry) == 1:
@@ -662,7 +663,7 @@ class OneLogin_Saml2_Utils(object):
         return status
 
     @staticmethod
-    def decrypt_element(encrypted_data, key, debug=False, inplace=False):
+    def decrypt_element(encrypted_data, key, key_passphrase=None, debug=False, inplace=False):
         """
         Decrypts an encrypted element.
 
@@ -692,12 +693,57 @@ class OneLogin_Saml2_Utils(object):
         xmlsec.enable_debug_trace(debug)
         manager = xmlsec.KeysManager()
 
-        manager.add_key(xmlsec.Key.from_memory(key, xmlsec.KeyFormat.PEM, None))
+        manager.add_key(xmlsec.Key.from_memory(key, xmlsec.KeyFormat.PEM, key_passphrase))
         enc_ctx = xmlsec.EncryptionContext(manager)
         return enc_ctx.decrypt(encrypted_data)
 
     @staticmethod
-    def add_sign(xml, key, cert, debug=False, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA1, digest_algorithm=OneLogin_Saml2_Constants.SHA1):
+    def encrypt_element(data, cert, debug=False):
+        """
+        Generates a nameID.
+
+        :param value: data
+        :type: lxml.etree.Element | DOMElement | basestring
+
+        :param cert: IdP Public Cert to encrypt the nameID
+        :type: string
+
+        :param debug: Activate the xmlsec debug
+        :type: bool
+
+        :returns: DOMElement | XMLSec nameID
+        :rtype: string
+
+        :param nq: IDP Name Qualifier
+        :type: string
+        """
+
+        xmlsec.enable_debug_trace(debug)
+
+        root = OneLogin_Saml2_XML.make_root("{%s}container" % OneLogin_Saml2_Constants.NS_SAML)
+        root.append(data)
+
+        # Load the public cert
+        manager = xmlsec.KeysManager()
+        manager.add_key(xmlsec.Key.from_memory(cert, xmlsec.KeyFormat.CERT_PEM, None))
+
+        # Prepare for encryption
+        enc_data = xmlsec.template.encrypted_data_create(
+            root, xmlsec.Transform.AES128, type=xmlsec.EncryptionType.ELEMENT, ns="xenc")
+
+        xmlsec.template.encrypted_data_ensure_cipher_value(enc_data)
+        key_info = xmlsec.template.encrypted_data_ensure_key_info(enc_data, ns="dsig")
+        enc_key = xmlsec.template.add_encrypted_key(key_info, xmlsec.Transform.RSA_OAEP)
+        xmlsec.template.encrypted_data_ensure_cipher_value(enc_key)
+
+        # Encrypt!
+        enc_ctx = xmlsec.EncryptionContext(manager)
+        enc_ctx.key = xmlsec.Key.generate(xmlsec.KeyData.AES, 128, xmlsec.KeyDataType.SESSION)
+        enc_data = enc_ctx.encrypt_xml(enc_data, data)
+        return compat.to_string(OneLogin_Saml2_XML.to_string(enc_data))
+
+    @staticmethod
+    def add_sign(xml, key, cert, debug=False, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA1, digest_algorithm=OneLogin_Saml2_Constants.SHA1, key_passphrase=None):
         """
         Adds signature key and senders certificate to an element (Message or
         Assertion).
@@ -779,7 +825,7 @@ class OneLogin_Saml2_Utils(object):
         xmlsec.template.add_x509_data(key_info)
 
         dsig_ctx = xmlsec.SignatureContext()
-        sign_key = xmlsec.Key.from_memory(key, xmlsec.KeyFormat.PEM, None)
+        sign_key = xmlsec.Key.from_memory(key, xmlsec.KeyFormat.PEM, key_passphrase)
         sign_key.load_cert_from_memory(cert, xmlsec.KeyFormat.PEM)
 
         dsig_ctx.key = sign_key
@@ -983,7 +1029,7 @@ class OneLogin_Saml2_Utils(object):
         return True
 
     @staticmethod
-    def sign_binary(msg, key, algorithm=xmlsec.Transform.RSA_SHA1, debug=False):
+    def sign_binary(msg, key, algorithm=xmlsec.Transform.RSA_SHA1, debug=False, key_passphrase=None):
         """
         Sign binary message
 
@@ -1005,7 +1051,7 @@ class OneLogin_Saml2_Utils(object):
 
         xmlsec.enable_debug_trace(debug)
         dsig_ctx = xmlsec.SignatureContext()
-        dsig_ctx.key = xmlsec.Key.from_memory(key, xmlsec.KeyFormat.PEM, None)
+        dsig_ctx.key = xmlsec.Key.from_memory(key, xmlsec.KeyFormat.PEM, key_passphrase)
         return dsig_ctx.sign_binary(compat.to_bytes(msg), algorithm)
 
     @staticmethod

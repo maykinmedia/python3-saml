@@ -11,10 +11,11 @@ Initializes the SP SAML instance
 
 """
 
+import logging
 import xmlsec
 
+
 from onelogin.saml2 import compat
-from onelogin.saml2.authn_request import OneLogin_Saml2_Authn_Request
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from onelogin.saml2.logout_request import OneLogin_Saml2_Logout_Request
 from onelogin.saml2.logout_response import OneLogin_Saml2_Logout_Response
@@ -22,6 +23,12 @@ from onelogin.saml2.response import OneLogin_Saml2_Response
 from onelogin.saml2.settings import OneLogin_Saml2_Settings
 from onelogin.saml2.utils import OneLogin_Saml2_Utils, OneLogin_Saml2_Error, OneLogin_Saml2_ValidationError
 from onelogin.saml2.xmlparser import tostring
+from onelogin.saml2.authn_request import OneLogin_Saml2_Authn_Request
+from onelogin.saml2.artifact_resolve import Artifact_Resolve_Request
+from onelogin.saml2.artifact_response import Artifact_Response
+
+
+logger = logging.getLogger(__name__)
 
 
 class OneLogin_Saml2_Auth(object):
@@ -111,6 +118,62 @@ class OneLogin_Saml2_Auth(object):
         self._authenticated = True
         self._last_assertion_not_on_or_after = response.get_assertion_not_on_or_after()
 
+    def artifact_resolve(self, saml_art):
+        """
+        Try to resolve the given artifact
+        """
+        logger.debug(
+            "Retrieved the SAMLArt %s via the ACS.", saml_art
+        )
+
+        resolve_request = Artifact_Resolve_Request(self._settings, saml_art)
+        resolve_response = resolve_request.send()
+        if resolve_response.status_code != 200:
+            raise OneLogin_Saml2_ValidationError(
+                "Received a status code {status_code} when trying to resolve the given artifact {saml_art}".format(
+                    status_code=resolve_response.status_code, saml_art=saml_art
+                )
+            )
+
+        logger.debug(
+            "Retrieved a ArtifactResponse with content %s", resolve_response.content
+        )
+
+        artifact_response = Artifact_Response(self._settings, resolve_response.content)
+        if not artifact_response.is_valid(resolve_request.get_id()):
+            raise OneLogin_Saml2_ValidationError(
+                "The ArtifactResponse could not be validated due to the following error: {error}".format(
+                    error=artifact_response.get_error()
+                )
+            )
+
+        saml2_response = OneLogin_Saml2_Response(self._settings, artifact_response.get_response_xml())
+        try:
+            saml2_response.is_valid(self._request_data, raise_exceptions=True)
+        except OneLogin_Saml2_ValidationError as e:
+            raise OneLogin_Saml2_ValidationError(
+                "The Response could not be validated due to the following error: {error}".format(
+                    error=saml2_response.get_error()
+                ), code=e.code
+            )
+
+        return saml2_response
+
+    def post_response(self, request_id=None):
+        # AuthnResponse -- HTTP_POST Binding
+        post_data = self._request_data['post_data']
+        if 'SAMLResponse' not in post_data:
+            raise OneLogin_Saml2_ValidationError('Can not find SAMLResponse in post data')
+
+        saml2_response = OneLogin_Saml2_Response(self._settings, post_data['SAMLResponse'])
+
+        try:
+            saml2_response.is_valid(self._request_data, raise_exceptions=True)
+        except OneLogin_Saml2_ValidationError as e:
+            raise e
+
+        return saml2_response
+
     def process_response(self, request_id=None):
         """
         Process the SAML Response sent by the IdP.
@@ -125,7 +188,7 @@ class OneLogin_Saml2_Auth(object):
 
         if 'post_data' in self._request_data and 'SAMLResponse' in self._request_data['post_data']:
             # AuthnResponse -- HTTP_POST Binding
-            response = self.response_class(self._settings, self._request_data['post_data']['SAMLResponse'])
+            response = OneLogin_Saml2_Response(self._settings, self._request_data['post_data']['SAMLResponse'])
             self._last_response = response.get_xml_document()
 
             if response.is_valid(self._request_data, request_id):
@@ -133,7 +196,14 @@ class OneLogin_Saml2_Auth(object):
             else:
                 self._errors.append('invalid_response')
                 self._error_reason = response.get_error()
-
+        elif 'get_data' in self._request_data and 'SAMLArt' in self._request_data['get_data']:
+            try:
+                response = self.artifact_resolve(self._request_data['get_data']['SAMLArt'])
+            except OneLogin_Saml2_ValidationError as e:
+                self._errors.append('invalid_response')
+                self._error_reason = str(e)
+            else:
+                self.store_valid_response(response)
         else:
             self._errors.append('invalid_binding')
             raise OneLogin_Saml2_Error(
@@ -389,6 +459,45 @@ class OneLogin_Saml2_Auth(object):
         """
         return self._last_authn_contexts
 
+    def _create_authn_request(
+        self, force_authn=False, is_passive=False, set_nameid_policy=True, name_id_value_req=None
+    ):
+        authn_request = OneLogin_Saml2_Authn_Request(
+            self._settings, force_authn, is_passive, set_nameid_policy, name_id_value_req
+        )
+        self._last_request = authn_request.get_xml()
+        self._last_request_id = authn_request.get_id()
+        return authn_request
+
+    def login_post(self, return_to=None, **authn_kwargs):
+        authn_request = self._create_authn_request(**authn_kwargs)
+
+        url = self.get_sso_url()
+        data = authn_request.get_request(deflate=False, base64_encode=False).encode('utf-8')
+
+        security = self._settings.get_security_data()
+        if security.get('authnRequestsSigned', False):
+            data = OneLogin_Saml2_Utils.add_sign(
+                data,
+                self._settings.get_sp_key(), self._settings.get_sp_cert(),
+                key_passphrase=self._settings.get_sp_key_passphrase(),
+                sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA256,
+                digest_algorithm=OneLogin_Saml2_Constants.SHA256)
+
+        saml_request = OneLogin_Saml2_Utils.b64encode(data)
+        logger.debug(
+            "Returning form-data to the user for a AuthNRequest to %s with SAMLRequest %s",
+            url, OneLogin_Saml2_Utils.b64decode(saml_request).decode('utf-8')
+        )
+        parameters = {'SAMLRequest': saml_request}
+
+        if return_to is not None:
+            parameters['RelayState'] = return_to
+        else:
+            parameters['RelayState'] = OneLogin_Saml2_Utils.get_self_url_no_query(self._request_data)
+
+        return url, parameters
+
     def login(self, return_to=None, force_authn=False, is_passive=False, set_nameid_policy=True, name_id_value_req=None):
         """
         Initiates the SSO process.
@@ -411,7 +520,10 @@ class OneLogin_Saml2_Auth(object):
         :returns: Redirection URL
         :rtype: string
         """
-        authn_request = self.authn_request_class(self._settings, force_authn, is_passive, set_nameid_policy, name_id_value_req)
+        authn_request = self._create_authn_request(
+            force_authn=force_authn, is_passive=is_passive,
+            set_nameid_policy=set_nameid_policy, name_id_value_req=name_id_value_req
+        )
         self._last_request = authn_request.get_xml()
         self._last_request_id = authn_request.get_id()
 
@@ -614,7 +726,11 @@ class OneLogin_Saml2_Auth(object):
         }
         sign_algorithm_transform = sign_algorithm_transform_map.get(sign_algorithm, xmlsec.Transform.RSA_SHA1)
 
-        signature = OneLogin_Saml2_Utils.sign_binary(msg, key, sign_algorithm_transform, self._settings.is_debug_active())
+        signature = OneLogin_Saml2_Utils.sign_binary(
+            msg, key,
+            key_passphrase=self._settings.get_sp_key_passphrase(),
+            algorithm=sign_algorithm_transform, debug=self._settings.is_debug_active(),
+        )
         data['Signature'] = OneLogin_Saml2_Utils.b64encode(signature)
         data['SigAlg'] = sign_algorithm
 

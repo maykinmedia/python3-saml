@@ -127,7 +127,7 @@ class OneLogin_Saml2_Authn_Request(object):
                 'acs_binding': sp_data['assertionConsumerService'].get('binding', 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST')
             }
 
-        self._authn_request = request
+        self.__authn_request = request
 
     def _generate_request_id(self):
         """
@@ -135,7 +135,7 @@ class OneLogin_Saml2_Authn_Request(object):
         """
         return OneLogin_Saml2_Utils.generate_unique_id()
 
-    def get_request(self, deflate=True):
+    def get_request(self, deflate=True, base64_encode=True):
         """
         Returns unsigned AuthnRequest.
         :param deflate: It makes the deflate process optional
@@ -144,9 +144,12 @@ class OneLogin_Saml2_Authn_Request(object):
         :rtype: str object
         """
         if deflate:
-            request = OneLogin_Saml2_Utils.deflate_and_base64_encode(self._authn_request)
+            assert base64_encode is True, "Deflate without base64 encoding is not supported"
+            request = OneLogin_Saml2_Utils.deflate_and_base64_encode(self.__authn_request)
+        elif base64_encode:
+            request = OneLogin_Saml2_Utils.b64encode(self.__authn_request)
         else:
-            request = OneLogin_Saml2_Utils.b64encode(self._authn_request)
+            request = self.__authn_request
         return request
 
     def get_id(self):
@@ -163,4 +166,4 @@ class OneLogin_Saml2_Authn_Request(object):
         :return: XML request body
         :rtype: string
         """
-        return self._authn_request
+        return self.__authn_request
