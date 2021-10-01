@@ -531,11 +531,11 @@ class OneLogin_Saml2_IdPMetadataParser_Test(unittest.TestCase):
           "contactPerson": {
             "support": {
               "emailAddress": "support@example.com",
-              "givenName": "support_name"
+              "telephoneNumber": "01111111111"
             },
             "technical": {
               "emailAddress": "technical@example.com",
-              "givenName": "technical_name"
+              "telephoneNumber": "01111111111"
             }
           },
           "idp": {
@@ -603,11 +603,11 @@ class OneLogin_Saml2_IdPMetadataParser_Test(unittest.TestCase):
           "contactPerson": {
             "technical": {
               "emailAddress": "technical@example.com",
-              "givenName": "technical_name"
+              "telephoneNumber": "01111111111"
             },
             "support": {
               "emailAddress": "support@example.com",
-              "givenName": "support_name"
+              "telephoneNumber": "01111111111"
             }
           },
           "strict": false,
@@ -681,11 +681,11 @@ class OneLogin_Saml2_IdPMetadataParser_Test(unittest.TestCase):
           "contactPerson": {
             "technical": {
               "emailAddress": "technical@example.com",
-              "givenName": "technical_name"
+              "telephoneNumber": "01111111111"
             },
             "support": {
               "emailAddress": "support@example.com",
-              "givenName": "support_name"
+              "telephoneNumber": "01111111111"
             }
           },
           "organization": {
