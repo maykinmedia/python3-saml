@@ -811,9 +811,9 @@ class OneLogin_Saml2_Settings_Test(unittest.TestCase):
 
         contacts = settings.get_contacts()
         self.assertNotEqual(len(contacts), 0)
-        self.assertEqual('technical_name', contacts['technical']['givenName'])
+        self.assertEqual("01111111111", contacts['technical']['telephoneNumber'])
         self.assertEqual('technical@example.com', contacts['technical']['emailAddress'])
-        self.assertEqual('support_name', contacts['support']['givenName'])
+        self.assertEqual("01111111111", contacts['support']['telephoneNumber'])
         self.assertEqual('support@example.com', contacts['support']['emailAddress'])
 
     def testGetOrganization(self):

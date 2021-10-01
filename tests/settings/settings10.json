@@ -28,11 +28,11 @@
     },
     "contactPerson": {
         "technical": {
-            "givenName": "technical_name",
+            "telephoneNumber": "01111111111",
             "emailAddress": "technical@example.com"
         },
         "support": {
-            "givenName": "support_name",
+            "telephoneNumber": "01111111111",
             "emailAddress": "support@example.com"
         }
     },
