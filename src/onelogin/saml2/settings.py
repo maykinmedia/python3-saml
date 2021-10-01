@@ -486,16 +486,16 @@ class OneLogin_Saml2_Settings(object):
                         errors.append('sp_cert_not_found_and_required')
 
             if 'contactPerson' in settings:
-                types = settings['contactPerson']
+                contact_types = settings['contactPerson']
                 valid_types = ['technical', 'support', 'administrative', 'billing', 'other']
-                for c_type in types:
-                    if c_type not in valid_types:
+                for contact_type in contact_types:
+                    if contact_type not in valid_types:
                         errors.append('contact_type_invalid')
                         break
 
                 for c_type in settings['contactPerson']:
                     contact = settings['contactPerson'][c_type]
-                    if ('givenName' not in contact or len(contact['givenName']) == 0) or \
+                    if ('telephoneNumber' not in contact or len(contact['telephoneNumber']) == 0) or \
                             ('emailAddress' not in contact or len(contact['emailAddress']) == 0):
                         errors.append('contact_not_enought_data')
                         break

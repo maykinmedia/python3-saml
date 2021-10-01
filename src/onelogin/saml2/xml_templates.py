@@ -82,8 +82,8 @@ class OneLogin_Saml2_Templates(object):
 
     MD_CONTACT_PERSON = """\
     <md:ContactPerson contactType="%(type)s">
-        <md:GivenName>%(name)s</md:GivenName>
         <md:EmailAddress>%(email)s</md:EmailAddress>
+        <md:TelephoneNumber>%(telephone)s</md:TelephoneNumber>
     </md:ContactPerson>"""
 
     MD_SLS = """\
