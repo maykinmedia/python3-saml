@@ -356,7 +356,7 @@ class OneLogin_Saml2_Authn_Request_Test(unittest.TestCase):
         saml_settings = self.loadSettingsJSON()
         settings = OneLogin_Saml2_Settings(saml_settings)
 
-        authn_request = OneLogin_Saml2_Authn_Request(settings)
+        authn_request = OneLogin_Saml2_Authn_Request(settings=settings)
         authn_request_encoded = authn_request.get_request()
         inflated = compat.to_string(OneLogin_Saml2_Utils.decode_base64_and_inflate(authn_request_encoded))
 
@@ -365,7 +365,7 @@ class OneLogin_Saml2_Authn_Request_Test(unittest.TestCase):
         saml_settings = self.loadSettingsJSON('settings4.json')
         settings = OneLogin_Saml2_Settings(saml_settings)
 
-        authn_request = OneLogin_Saml2_Authn_Request(settings)
+        authn_request = OneLogin_Saml2_Authn_Request(settings=settings, attr_consuming_service_index="1")
         authn_request_encoded = authn_request.get_request()
         inflated = compat.to_string(OneLogin_Saml2_Utils.decode_base64_and_inflate(authn_request_encoded))
 

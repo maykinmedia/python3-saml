@@ -88,7 +88,7 @@ Installation
 
 ### Dependencies ###
 
- * python 2.7 // python 3.6
+ * python 3.6
  * [xmlsec](https://pypi.python.org/pypi/xmlsec) Python bindings for the XML Security Library.
  * [isodate](https://pypi.python.org/pypi/isodate) An ISO 8601 date/time/
  duration parser and formatter
