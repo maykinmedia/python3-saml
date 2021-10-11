@@ -98,11 +98,11 @@ class OneLogin_Saml2_Settings(object):
         :param sp_validation_only: Avoid the IdP validation
         :type sp_validation_only: boolean
         """
-        self.__sp_validation_only = sp_validation_only
+        self._sp_validation_only = sp_validation_only
         self._paths = {}
         self._strict = True
         self._debug = False
-        self.__sp = {}
+        self._sp = {}
         self._idp = {}
         self._security = {}
         self._contacts = {}
@@ -140,7 +140,7 @@ class OneLogin_Saml2_Settings(object):
         if 'x509certMulti' in self._idp:
             self.format_idp_cert_multi()
         self.format_sp_cert()
-        if 'x509certNew' in self.__sp:
+        if 'x509certNew' in self._sp:
             self.format_sp_cert_new()
         self.format_sp_key()
 
@@ -225,7 +225,7 @@ class OneLogin_Saml2_Settings(object):
         errors = self.check_settings(settings)
         if len(errors) == 0:
             self._errors = []
-            self.__sp = settings['sp']
+            self._sp = settings['sp']
             self._idp = settings.get('idp', {})
             self._strict = settings.get('strict', True)
             self._debug = settings.get('debug', False)
@@ -271,18 +271,18 @@ class OneLogin_Saml2_Settings(object):
         """
         Add default values if the settings info is not complete
         """
-        self.__sp.setdefault('assertionConsumerService', {})
-        self.__sp['assertionConsumerService'].setdefault('binding', OneLogin_Saml2_Constants.BINDING_HTTP_POST)
+        self._sp.setdefault('assertionConsumerService', {})
+        self._sp['assertionConsumerService'].setdefault('binding', OneLogin_Saml2_Constants.BINDING_HTTP_POST)
 
-        self.__sp.setdefault('attributeConsumingService', {})
+        self._sp.setdefault('attributeConsumingService', {})
 
-        self.__sp.setdefault('singleLogoutService', {})
-        self.__sp['singleLogoutService'].setdefault('binding', OneLogin_Saml2_Constants.BINDING_HTTP_REDIRECT)
+        self._sp.setdefault('singleLogoutService', {})
+        self._sp['singleLogoutService'].setdefault('binding', OneLogin_Saml2_Constants.BINDING_HTTP_REDIRECT)
 
         self._idp.setdefault('singleLogoutService', {})
 
         # Related to nameID
-        self.__sp.setdefault('NameIDFormat', OneLogin_Saml2_Constants.NAMEID_UNSPECIFIED)
+        self._sp.setdefault('NameIDFormat', OneLogin_Saml2_Constants.NAMEID_UNSPECIFIED)
         self._security.setdefault('nameIdEncrypted', False)
 
         # Metadata format
@@ -322,8 +322,8 @@ class OneLogin_Saml2_Settings(object):
         self._idp.setdefault('certFingerprint', '')
         self._idp.setdefault('certFingerprintAlgorithm', 'sha1')
 
-        self.__sp.setdefault('x509cert', '')
-        self.__sp.setdefault('privateKey', '')
+        self._sp.setdefault('x509cert', '')
+        self._sp.setdefault('privateKey', '')
 
         self._security.setdefault('requestedAuthnContext', True)
         self._security.setdefault('requestedAuthnContextComparison', 'exact')
@@ -345,7 +345,7 @@ class OneLogin_Saml2_Settings(object):
         if not isinstance(settings, dict) or len(settings) == 0:
             errors.append('invalid_syntax')
         else:
-            if not self.__sp_validation_only:
+            if not self._sp_validation_only:
                 errors += self.check_idp_settings(settings)
             sp_errors = self.check_sp_settings(settings)
             errors += sp_errors
@@ -425,9 +425,9 @@ class OneLogin_Saml2_Settings(object):
                 errors.append('sp_not_found')
             else:
                 allow_single_domain_urls = self._get_allow_single_label_domain(settings)
-                # check_sp_certs uses self.__sp so I add it
-                old_sp = self.__sp
-                self.__sp = settings['sp']
+                # check_sp_certs uses self._sp so I add it
+                old_sp = self._sp
+                self._sp = settings['sp']
 
                 sp = settings['sp']
                 security = settings.get('security', {})
@@ -441,29 +441,38 @@ class OneLogin_Saml2_Settings(object):
                     errors.append('sp_acs_url_invalid')
 
                 if sp.get('attributeConsumingService'):
-                    attributeConsumingService = sp['attributeConsumingService']
-                    if 'serviceName' not in attributeConsumingService:
-                        errors.append('sp_attributeConsumingService_serviceName_not_found')
-                    elif not isinstance(attributeConsumingService['serviceName'], basestring):
-                        errors.append('sp_attributeConsumingService_serviceName_type_invalid')
+                    attribute_consuming_services = sp['attributeConsumingService']
+                    # Compatibility with older versions: attributeConsumingService was only a dict
+                    if isinstance(attribute_consuming_services, dict):
+                        attribute_consuming_services = [attribute_consuming_services]
 
-                    if 'requestedAttributes' not in attributeConsumingService:
-                        errors.append('sp_attributeConsumingService_requestedAttributes_not_found')
-                    elif not isinstance(attributeConsumingService['requestedAttributes'], list):
-                        errors.append('sp_attributeConsumingService_serviceName_type_invalid')
-                    else:
-                        for req_attrib in attributeConsumingService['requestedAttributes']:
-                            if 'name' not in req_attrib:
-                                errors.append('sp_attributeConsumingService_requestedAttributes_name_not_found')
-                            if 'name' in req_attrib and not req_attrib['name'].strip():
-                                errors.append('sp_attributeConsumingService_requestedAttributes_name_invalid')
-                            if 'attributeValue' in req_attrib and type(req_attrib['attributeValue']) != list:
-                                errors.append('sp_attributeConsumingService_requestedAttributes_attributeValue_type_invalid')
-                            if 'isRequired' in req_attrib and type(req_attrib['isRequired']) != bool:
-                                errors.append('sp_attributeConsumingService_requestedAttributes_isRequired_type_invalid')
+                    is_index_compulsory = len(attribute_consuming_services) > 1
+                    for attributeConsumingService in attribute_consuming_services:
+                        if 'index' not in attributeConsumingService and is_index_compulsory:
+                            errors.append('sp_attributeConsumingService_index_not_found')
 
-                    if "serviceDescription" in attributeConsumingService and not isinstance(attributeConsumingService['serviceDescription'], basestring):
-                        errors.append('sp_attributeConsumingService_serviceDescription_type_invalid')
+                        if 'serviceName' not in attributeConsumingService:
+                            errors.append('sp_attributeConsumingService_serviceName_not_found')
+                        elif not isinstance(attributeConsumingService['serviceName'], basestring):
+                            errors.append('sp_attributeConsumingService_serviceName_type_invalid')
+
+                        if 'requestedAttributes' not in attributeConsumingService:
+                            errors.append('sp_attributeConsumingService_requestedAttributes_not_found')
+                        elif not isinstance(attributeConsumingService['requestedAttributes'], list):
+                            errors.append('sp_attributeConsumingService_serviceName_type_invalid')
+                        else:
+                            for req_attrib in attributeConsumingService['requestedAttributes']:
+                                if 'name' not in req_attrib:
+                                    errors.append('sp_attributeConsumingService_requestedAttributes_name_not_found')
+                                if 'name' in req_attrib and not req_attrib['name'].strip():
+                                    errors.append('sp_attributeConsumingService_requestedAttributes_name_invalid')
+                                if 'attributeValue' in req_attrib and type(req_attrib['attributeValue']) != list:
+                                    errors.append('sp_attributeConsumingService_requestedAttributes_attributeValue_type_invalid')
+                                if 'isRequired' in req_attrib and type(req_attrib['isRequired']) != bool:
+                                    errors.append('sp_attributeConsumingService_requestedAttributes_isRequired_type_invalid')
+
+                        if "serviceDescription" in attributeConsumingService and not isinstance(attributeConsumingService['serviceDescription'], basestring):
+                            errors.append('sp_attributeConsumingService_serviceDescription_type_invalid')
 
                 slo_url = sp.get('singleLogoutService', {}).get('url')
                 if slo_url and not validate_url(slo_url, allow_single_domain_urls):
@@ -508,9 +517,9 @@ class OneLogin_Saml2_Settings(object):
                             ('url' not in organization or len(organization['url']) == 0):
                         errors.append('organization_not_enought_data')
                         break
-        # Restores the value that had the self.__sp
+        # Restores the value that had the self._sp
         if 'old_sp' in locals():
-            self.__sp = old_sp
+            self._sp = old_sp
 
         return errors
 
@@ -562,7 +571,7 @@ class OneLogin_Saml2_Settings(object):
         :returns: SP private key
         :rtype: string or None
         """
-        key = self.__sp.get('privateKey')
+        key = self._sp.get('privateKey')
         key_file_name = self._paths['cert'] + 'sp.key'
 
         if not key and exists(key_file_name):
@@ -572,7 +581,7 @@ class OneLogin_Saml2_Settings(object):
         return key or None
 
     def get_sp_key_passphrase(self):
-        return self.__sp.get('privateKeyPassphrase', None)
+        return self._sp.get('privateKeyPassphrase', None)
 
     def get_sp_cert(self):
         """
@@ -580,7 +589,7 @@ class OneLogin_Saml2_Settings(object):
         :returns: SP public cert
         :rtype: string or None
         """
-        cert = self.__sp.get('x509cert')
+        cert = self._sp.get('x509cert')
         cert_file_name = self._paths['cert'] + 'sp.crt'
 
         if not cert and exists(cert_file_name):
@@ -596,7 +605,7 @@ class OneLogin_Saml2_Settings(object):
         :returns: SP public cert new
         :rtype: string or None
         """
-        cert = self.__sp.get('x509certNew')
+        cert = self._sp.get('x509certNew')
         cert_file_name = self._paths['cert'] + 'sp_new.crt'
 
         if not cert and exists(cert_file_name):
@@ -634,7 +643,7 @@ class OneLogin_Saml2_Settings(object):
         :returns: SP info
         :rtype: dict
         """
-        return self.__sp
+        return self._sp
 
     def get_security_data(self):
         """
@@ -670,7 +679,7 @@ class OneLogin_Saml2_Settings(object):
         :rtype: string
         """
         metadata = self.metadata_class.builder(
-            self.__sp, self._security['authnRequestsSigned'],
+            self._sp, self._security['authnRequestsSigned'],
             self._security['wantAssertionsSigned'],
             self._security['metadataValidUntil'],
             self._security['metadataCacheDuration'],
@@ -803,19 +812,19 @@ class OneLogin_Saml2_Settings(object):
         """
         Formats the SP cert.
         """
-        self.__sp['x509cert'] = OneLogin_Saml2_Utils.format_cert(self.__sp['x509cert'])
+        self._sp['x509cert'] = OneLogin_Saml2_Utils.format_cert(self._sp['x509cert'])
 
     def format_sp_cert_new(self):
         """
         Formats the SP cert.
         """
-        self.__sp['x509certNew'] = OneLogin_Saml2_Utils.format_cert(self.__sp['x509certNew'])
+        self._sp['x509certNew'] = OneLogin_Saml2_Utils.format_cert(self._sp['x509certNew'])
 
     def format_sp_key(self):
         """
         Formats the private key.
         """
-        self.__sp['privateKey'] = OneLogin_Saml2_Utils.format_private_key(self.__sp['privateKey'])
+        self._sp['privateKey'] = OneLogin_Saml2_Utils.format_private_key(self._sp['privateKey'])
 
     def get_errors(self):
         """
