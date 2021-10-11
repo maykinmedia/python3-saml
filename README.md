@@ -299,13 +299,12 @@ This is the ``settings.json`` file:
         },
         // If you need to specify requested attributes, set a
         // attributeConsumingService. nameFormat, attributeValue and
-        // friendlyName can be omitted
-        "attributeConsumingService": {
-                // OPTIONAL: only specify if SP requires this.
-                // index is an integer which identifies the attributeConsumingService used
-                // to the SP. SAML toolkit supports configuring only one attributeConsumingService
-                // but in certain cases the SP requires a different value.  Defaults to '1'.
-                // "index": '1',
+        // friendlyName can be ommited. If more than 1 service is added, the 
+        // index parameter is required. 
+        "attributeConsumingServices": [{
+                // Index is an integer which identifies the attributeConsumingService used
+                // to the SP. 
+                "index": "1",
                 "serviceName": "SP test",
                 "serviceDescription": "Test Service",
                 "requestedAttributes": [
@@ -317,7 +316,7 @@ This is the ``settings.json`` file:
                         "attributeValue": []
                     }
                 ]
-        },
+        }],
         // Specifies the constraints on the name identifier to be used to
         // represent the requested subject.
         // Take a look on src/onelogin/saml2/constants.py to see the NameIdFormat that are supported.
