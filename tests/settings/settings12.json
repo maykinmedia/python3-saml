@@ -7,7 +7,7 @@
         "assertionConsumerService": {
             "url": "http://pytoolkit.com:8000/?acs"
         },
-        "attributeConsumingService": [
+        "attributeConsumingServices": [
             {
                 "isDefault": false,
                 "serviceName": "Test Service 1",
@@ -25,7 +25,8 @@
                         "friendlyName": "uid",
                         "isRequired": false
                     }
-                ]
+                ],
+                "language": "nl"
           },
           {
               "isDefault": false,
