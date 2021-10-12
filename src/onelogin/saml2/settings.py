@@ -443,8 +443,8 @@ class OneLogin_Saml2_Settings(object):
                 elif not validate_url(sp['assertionConsumerService']['url'], allow_single_domain_urls):
                     errors.append('sp_acs_url_invalid')
 
-                if sp.get('attributeConsumingService'):
-                    attribute_consuming_services = sp['attributeConsumingService']
+                attribute_consuming_services = sp.get('attributeConsumingService') or sp.get('attributeConsumingServices')
+                if attribute_consuming_services:
                     # Compatibility with older versions: attributeConsumingService was only a dict
                     if isinstance(attribute_consuming_services, dict):
                         attribute_consuming_services = [attribute_consuming_services]
