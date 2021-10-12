@@ -37,11 +37,12 @@ class OneLogin_Saml2_Metadata(object):
     @staticmethod
     def make_attribute_consuming_services(service_provider: dict) -> str:
         str_attribute_consuming_service = ''
-        if 'attributeConsumingService' not in service_provider:
+
+        attribute_consuming_services = service_provider.get('attributeConsumingService') or service_provider.get('attributeConsumingServices')
+        if not attribute_consuming_services:
             return str_attribute_consuming_service
 
         # Compatibility with older versions: attributeConsumingService was just a dictionary
-        attribute_consuming_services = service_provider['attributeConsumingService']
         if isinstance(attribute_consuming_services, dict):
             attribute_consuming_services = [attribute_consuming_services]
 
@@ -51,8 +52,11 @@ class OneLogin_Saml2_Metadata(object):
 
             attr_cs_desc_str = ''
             if "serviceDescription" in attribute_consuming_service:
-                attr_cs_desc_str = """            <md:ServiceDescription xml:lang="en">%s</md:ServiceDescription>
-""" % attribute_consuming_service['serviceDescription']
+                attr_cs_desc_str = """            <md:ServiceDescription xml:lang="%(lang)s">%(description)s</md:ServiceDescription>
+""" % {
+                    "lang": attribute_consuming_service.get("language", "en"),
+                    "description": attribute_consuming_service['serviceDescription']
+                }
 
             requested_attribute_data = []
             if 'requestedAttributes' in attribute_consuming_service:
@@ -92,11 +96,12 @@ class OneLogin_Saml2_Metadata(object):
                     requested_attribute_data.append(requested_attribute)
 
             str_attribute_consuming_service += """        <md:AttributeConsumingService index="%(attribute_consuming_service_index)s">
-            <md:ServiceName xml:lang="en">%(service_name)s</md:ServiceName>
+            <md:ServiceName xml:lang="%(lang)s">%(service_name)s</md:ServiceName>
 %(attr_cs_desc)s%(requested_attribute_str)s
         </md:AttributeConsumingService>
 """ % \
                                                {
+                                                   'lang': attribute_consuming_service.get("language", "en"),
                                                    'service_name': attribute_consuming_service.get('serviceName', ''),
                                                    'attr_cs_desc': attr_cs_desc_str,
                                                    'attribute_consuming_service_index': attribute_consuming_service.get(
