@@ -197,8 +197,8 @@ class OneLogin_Saml2_Metadata_Test(unittest.TestCase):
             organization
         )
         self.assertIn("""        <md:AttributeConsumingService index="9000">
-            <md:ServiceName xml:lang="en">Test Service 1</md:ServiceName>
-            <md:ServiceDescription xml:lang="en">Test Service 1</md:ServiceDescription>
+            <md:ServiceName xml:lang="nl">Test Service 1</md:ServiceName>
+            <md:ServiceDescription xml:lang="nl">Test Service 1</md:ServiceDescription>
             <md:RequestedAttribute Name="userType" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
                 <saml:AttributeValue xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">userType</saml:AttributeValue>
                 <saml:AttributeValue xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">admin</saml:AttributeValue>
