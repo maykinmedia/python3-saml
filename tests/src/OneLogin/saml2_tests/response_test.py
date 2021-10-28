@@ -2078,3 +2078,16 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
             attributes['urn:etoegang:1.11:attribute-represented:CompanyName'],
             ['Maykin Media B.V.']
         )
+
+    def testPrettyPrint(self):
+        """
+        Tests pretty printing.
+        """
+        settings = OneLogin_Saml2_Settings(self.loadSettingsJSON())
+        base64_response = self.file_contents(join(self.data_path, 'responses', 'response1.xml.base64'))
+        response = OneLogin_Saml2_Response(settings, base64_response)
+
+        pretty_response = response.pretty_print().strip('\n')
+        expected_pretty_response = b64decode(base64_response).decode('utf-8').strip('\r\n').replace('\r\n', '\n')
+
+        self.assertEqual(expected_pretty_response, pretty_response)
