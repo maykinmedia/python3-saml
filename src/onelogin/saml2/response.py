@@ -10,6 +10,8 @@ SAML Response class of OneLogin's Python Toolkit.
 """
 
 from copy import deepcopy
+from defusedxml.lxml import tostring
+
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from onelogin.saml2.utils import OneLogin_Saml2_Utils, OneLogin_Saml2_Error, OneLogin_Saml2_ValidationError, return_false_on_exception
 from onelogin.saml2.xml_utils import OneLogin_Saml2_XML
@@ -1020,3 +1022,6 @@ class OneLogin_Saml2_Response(object):
             )
         issue_instant = self._query_assertion('')[0].get('IssueInstant', None)
         return OneLogin_Saml2_Utils.parse_SAML_to_time(issue_instant)
+
+    def pretty_print(self) -> str:
+        return tostring(self.document, pretty_print=True).decode("utf-8")
