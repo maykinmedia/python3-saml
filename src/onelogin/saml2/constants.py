@@ -118,3 +118,7 @@ class OneLogin_Saml2_Constants(object):
 
     # Define here the deprecated algorithms
     DEPRECATED_ALGORITHMS = [DSA_SHA1, RSA_SHA1, SHA1]
+
+    # XML Content types
+    SOAP_XML = "application/soap+xml"
+    TEXT_XML = "text/xml"
