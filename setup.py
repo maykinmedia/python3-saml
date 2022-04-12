@@ -54,7 +54,8 @@ setup(
             'pylint==1.9.4',
             'flake8>=3.6.0',
             'pytest>=4.6',
-            'responses>=0.12.0'
+            'responses>=0.12.0',
+            'requests-mock>=1.9.3',
         ),
     },
     keywords='saml saml2 xmlsec django flask pyramid python3',
