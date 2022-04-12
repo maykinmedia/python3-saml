@@ -324,6 +324,7 @@ class OneLogin_Saml2_Settings(object):
         self._idp.setdefault('x509cert', '')
         self._idp.setdefault('certFingerprint', '')
         self._idp.setdefault('certFingerprintAlgorithm', 'sha1')
+        self._idp.setdefault('resolveArtifactBindingContentType', OneLogin_Saml2_Constants.SOAP_XML)
 
         self._sp.setdefault('x509cert', '')
         self._sp.setdefault('privateKey', '')
