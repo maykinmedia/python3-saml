@@ -870,6 +870,28 @@ class OneLogin_Saml2_Auth_Test(unittest.TestCase):
         self.assertIn(return_to, parsed_query['RelayState'])
         self.assertIn(OneLogin_Saml2_Constants.RSA_SHA256, parsed_query['SigAlg'])
 
+    def testLogoutSignedWithSelectedAlgorithm(self):
+        """
+        Tests the logout method of the OneLogin_Saml2_Auth class
+        Case Logout signed with selected algorithm. A logout Request signed in
+        the assertion is built and redirect executed
+        """
+        settings_info = self.loadSettingsJSON()
+        settings_info['security']['logoutRequestSigned'] = True
+        auth = OneLogin_Saml2_Auth(self.get_request(), old_settings=settings_info)
+        return_to = u'http://example.com/returnto'
+
+        target_url = auth.logout(return_to, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA1)
+        parsed_query = parse_qs(urlparse(target_url)[4])
+        slo_url = settings_info['idp']['singleLogoutService']['url']
+        self.assertIn(slo_url, target_url)
+        self.assertIn('SAMLRequest', parsed_query)
+        self.assertIn('RelayState', parsed_query)
+        self.assertIn('SigAlg', parsed_query)
+        self.assertIn('Signature', parsed_query)
+        self.assertIn(return_to, parsed_query['RelayState'])
+        self.assertIn(OneLogin_Saml2_Constants.RSA_SHA1, parsed_query['SigAlg'])
+
     def testLogoutNoSLO(self):
         """
         Tests the logout method of the OneLogin_Saml2_Auth class

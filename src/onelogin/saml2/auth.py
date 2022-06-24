@@ -559,7 +559,7 @@ class OneLogin_Saml2_Auth(object):
             self.add_request_signature(parameters, security['signatureAlgorithm'])
         return self.redirect_to(self.get_sso_url(), parameters)
 
-    def logout(self, return_to=None, name_id=None, session_index=None, nq=None, name_id_format=None, spnq=None):
+    def logout(self, return_to=None, name_id=None, session_index=None, nq=None, name_id_format=None, spnq=None, sign_algorithm=None):
         """
         Initiates the SLO process.
 
@@ -579,6 +579,9 @@ class OneLogin_Saml2_Auth(object):
         :type: string
 
         :param spnq: SP Name Qualifier
+        :type: string
+
+        :param sign_algorithm: Algorithm to sign a query string. If empty 'security.signatureAlgorithm' is used
         :type: string
 
         :returns: Redirection URL
@@ -615,7 +618,8 @@ class OneLogin_Saml2_Auth(object):
 
         security = self._settings.get_security_data()
         if security.get('logoutRequestSigned', False):
-            self.add_request_signature(parameters, security['signatureAlgorithm'])
+            algorithm = sign_algorithm or security['signatureAlgorithm']
+            self.add_request_signature(parameters, algorithm)
         return self.redirect_to(slo_url, parameters)
 
     def get_sso_url(self):
