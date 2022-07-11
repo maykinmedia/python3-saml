@@ -147,3 +147,49 @@ class TestOneLoginSaml2Xml(unittest.TestCase):
 
         signature_nodes_5 = OneLogin_Saml2_XML.query(dom, './/ds:SignatureValue', assertion)
         self.assertEqual(1, len(signature_nodes_5))
+
+    def test_remove_soap_envelope(self):
+        xml = (
+            '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">'
+            "<soapenv:Body>"
+            "<test>test value</test>"
+            "</soapenv:Body>"
+            "</soapenv:Envelope>"
+        )
+
+        xml_without_soap = OneLogin_Saml2_XML.remove_soap_envelope(xml)
+
+        self.assertEqual(xml_without_soap.tag, "test")
+        self.assertEqual(
+            etree.tostring(xml_without_soap, encoding="unicode"),
+            '<test xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">test value</test>',
+        )
+
+    def test_add_soap_envelope(self):
+        xml = "<test>test1</test>"
+
+        xml_with_soap = OneLogin_Saml2_XML.add_soap_envelop(xml)
+
+        expected_xml = (
+                '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
+                "<soap:Body>" + xml + "</soap:Body>"
+                                      "</soap:Envelope>"
+        )
+
+        self.assertEqual(xml_with_soap.replace("\n", "").strip(), expected_xml)
+
+    def test_generate_soap_fault_message(self):
+        fault_message = OneLogin_Saml2_XML.generate_soap_fault_message("Something wrong happened")
+
+        expected = (
+            "<soap:Envelope "
+            'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
+            "<soap:Body>"
+            "<soap:Fault>"
+            "<faultcode>SOAP-ENV:Client</faultcode>"
+            "<faultstring>Something wrong happened</faultstring>"
+            "</soap:Fault>"
+            "</soap:Body>"
+            "</soap:Envelope>"
+        )
+        self.assertEqual(fault_message.replace("\n", "").strip(), expected)

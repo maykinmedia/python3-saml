@@ -205,15 +205,11 @@ class OneLogin_Saml2_XML(object):
         """
         Generates SOAP Fault message
         """
-        xml_template = (
-            "<soap:Envelope "
-            'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
-            "<soap:Body>"
+        fault = (
             "<soap:Fault>"
             "<faultcode>%(code)s</faultcode>"
             "<faultstring>%(detail)s</faultstring>"
             "</soap:Fault>"
-            "</soap:Body>"
-            "</soap:Envelope>"
-        )
-        return xml_template % {"code": code, "detail": error_message}
+        ) % {"code": code, "detail": error_message}
+
+        return OneLogin_Saml2_Templates.SOAP_ENVELOPE % {"soap_body": fault}
