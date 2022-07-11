@@ -161,12 +161,22 @@ class OneLogin_Saml2_Metadata(object):
             organization = {}
 
         sls = ''
-        if 'singleLogoutService' in sp and 'url' in sp['singleLogoutService']:
-            sls = OneLogin_Saml2_Templates.MD_SLS % \
-                {
-                    'binding': sp['singleLogoutService']['binding'],
-                    'location': sp['singleLogoutService']['url'],
-                }
+        if 'singleLogoutService' in sp:
+            if 'url' in sp['singleLogoutService']:
+                sls_logout_request = OneLogin_Saml2_Templates.MD_SLS % \
+                    {
+                        'binding': sp['singleLogoutService']['binding'],
+                        'location': sp['singleLogoutService']['url'],
+                    }
+                sls += sls_logout_request
+
+            if 'responseUrl' in sp['singleLogoutService']:
+                sls_logout_response = OneLogin_Saml2_Templates.MD_SLS % \
+                     {
+                         'binding': sp['singleLogoutService'].get("responseBinding", "Binding"),
+                         'location': sp['singleLogoutService']['responseUrl'],
+                     }
+                sls += sls_logout_response
 
         str_authnsign = 'true' if authnsign else 'false'
         str_wsign = 'true' if wsign else 'false'
