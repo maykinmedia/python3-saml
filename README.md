@@ -273,15 +273,15 @@ This is the ``settings.json`` file:
         },
         // Specifies info about where and how the <Logout Request/Response> message MUST be sent.
         "singleLogoutService": {
-            // URL Location where the <LogoutRequest> from the IdP will be sent (IdP-initiated logout)
+            // URL Location where the <LogoutRequest> from the IdP will be sent (IdP-initiated logout, request)
             "url": "https://<sp_domain>/?sls",
+            // SAML protocol binding to be used with IdP initiated logout
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
             // URL Location where the <LogoutResponse> from the IdP will sent (SP-initiated logout, reply)
-            // OPTIONAL: only specify if different from url parameter
-            //"responseUrl": "https://<sp_domain>/?sls",
-            // SAML protocol binding to be used when returning the <Response>
-            // message. OneLogin Toolkit supports the HTTP-Redirect binding
-            // only for this endpoint.
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+            "responseUrl": "https://<sp_domain>/?sls",
+            // SAML protocol binding to be used with SP-initiated logout
+            // It defaults 'sp.singleLogoutService.binding' if not specified but `responseUrl` is specified 
+            "responseBinding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
         },
         // If you need to specify requested attributes, set a
         // attributeConsumingService. nameFormat, attributeValue and
