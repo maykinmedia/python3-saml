@@ -190,7 +190,7 @@ class TestOneLoginSaml2Xml(unittest.TestCase):
     def test_add_soap_envelope(self):
         xml = "<test>test1</test>"
 
-        xml_with_soap = OneLogin_Saml2_XML.add_soap_envelop(xml)
+        xml_with_soap = OneLogin_Saml2_XML.add_soap_envelope(xml)
 
         expected_xml = (
                 '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
