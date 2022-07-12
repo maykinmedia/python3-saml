@@ -192,11 +192,11 @@ class OneLogin_Saml2_XML(object):
         ].getchildren()[0]
 
     @staticmethod
-    def add_soap_envelop(xml: str) -> str:
+    def add_soap_envelope(xml: str) -> str:
         """
-        wraps xml in the SOAP Envelop
+        wraps xml in the SOAP Envelope
 
-        :param xml: is xml which should be put in SOAP Envelop
+        :param xml: is xml which should be put in SOAP Envelope
         """
         return OneLogin_Saml2_Templates.SOAP_ENVELOPE % {"soap_body": xml}
 
