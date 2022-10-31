@@ -8,7 +8,7 @@ from setuptools import setup
 
 
 setup(
-    name='python3-saml',
+    name='maykin-python3-saml',
     version='1.14.0',
     description='Onelogin Python Toolkit. Add SAML support to your Python software using this library',
     classifiers=[
@@ -16,19 +16,15 @@ setup(
         'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
     ],
-    author='OneLogin',
-    author_email='support@onelogin.com',
+    author='OneLogin, Maykin Media',
+    author_email='support@maykinmedia.nl',
     license='MIT',
-    url='https://github.com/onelogin/python3-saml',
+    url='https://github.com/maykinmedia/python3-saml@maykin',
     packages=['onelogin', 'onelogin/saml2'],
     include_package_data=True,
     package_data={
