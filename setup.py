@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup(
     name='maykin-python3-saml',
-    version='1.14.0',
+    version='1.14.0.post0',  # can't use PEP 440 local versions with PyPI
     description='Onelogin Python Toolkit. Add SAML support to your Python software using this library',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -34,7 +34,7 @@ setup(
     },
     test_suite='tests',
     install_requires=[
-        'lxml>=4.6.5, !=4.7.0',
+        'lxml>=4.7.1',
         'isodate>=0.6.1',
         'xmlsec>=1.3.9',
         'defusedxml>=0.5.0',
