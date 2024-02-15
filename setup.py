@@ -3,6 +3,10 @@
 
 from setuptools import setup
 
+#
+# NOTE - this file appears to be obsoleted by pyproject.toml. It's still present in
+# upstream too, but appears to be ignored due to poetry being used as build tool.
+#
 
 setup(
     name='maykin-python3-saml',
