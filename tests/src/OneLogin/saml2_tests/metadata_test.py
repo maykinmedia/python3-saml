@@ -349,7 +349,7 @@ class OneLogin_Saml2_Metadata_Test(unittest.TestCase):
 
         self.assertIsNotNone(metadata)
 
-        metadata_clean = re.sub("\s+", " ", metadata).replace("\n", "")
+        metadata_clean = re.sub(r"\s+", " ", metadata).replace("\n", "")
 
         expected_slo = (
             '<md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="http://stuff.com/endpoints/endpoints/sls-soap.php" /> '

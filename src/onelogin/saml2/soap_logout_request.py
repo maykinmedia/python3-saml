@@ -80,8 +80,8 @@ class Soap_Logout_Request(object):
             "rejectDeprecatedAlgorithm", False
         )
         if (
-            reject_deprecated_alg
-            and sig_method in OneLogin_Saml2_Constants.DEPRECATED_ALGORITHMS
+            reject_deprecated_alg and
+            sig_method in OneLogin_Saml2_Constants.DEPRECATED_ALGORITHMS
         ):
             raise OneLogin_Saml2_ValidationError(
                 "Deprecated signature algorithm found: %s" % sig_method,
