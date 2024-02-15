@@ -1,5 +1,5 @@
 from base64 import b64encode
-from defusedxml.lxml import tostring
+from lxml.etree import tostring
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from onelogin.saml2.utils import (OneLogin_Saml2_Utils,
                                   OneLogin_Saml2_ValidationError)
