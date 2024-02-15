@@ -743,47 +743,47 @@ class OneLogin_Saml2_Utils_Test(unittest.TestCase):
         self.assertIn('<ds:SignatureValue>', xml_authn_signed)
 
         res = parseString(xml_authn_signed)
-        ds_signature = res.firstChild.firstChild.nextSibling.nextSibling
+        ds_signature = res.firstChild.firstChild.nextSibling.nextSibling.nextSibling
         self.assertIn('ds:Signature', ds_signature.tagName)
 
         xml_authn_dom = parseString(xml_authn)
         xml_authn_signed_2 = compat.to_string(OneLogin_Saml2_Utils.add_sign(xml_authn_dom.toxml(), key, cert))
         self.assertIn('<ds:SignatureValue>', xml_authn_signed_2)
         res_2 = parseString(xml_authn_signed_2)
-        ds_signature_2 = res_2.firstChild.firstChild.nextSibling.nextSibling
+        ds_signature_2 = res_2.firstChild.firstChild.nextSibling.nextSibling.nextSibling
         self.assertIn('ds:Signature', ds_signature_2.tagName)
 
         xml_authn_signed_3 = compat.to_string(OneLogin_Saml2_Utils.add_sign(xml_authn_dom.firstChild.toxml(), key, cert))
         self.assertIn('<ds:SignatureValue>', xml_authn_signed_3)
         res_3 = parseString(xml_authn_signed_3)
-        ds_signature_3 = res_3.firstChild.firstChild.nextSibling.nextSibling
+        ds_signature_3 = res_3.firstChild.firstChild.nextSibling.nextSibling.nextSibling
         self.assertIn('ds:Signature', ds_signature_3.tagName)
 
         xml_authn_etree = etree.fromstring(xml_authn)
         xml_authn_signed_4 = compat.to_string(OneLogin_Saml2_Utils.add_sign(xml_authn_etree, key, cert))
         self.assertIn('<ds:SignatureValue>', xml_authn_signed_4)
         res_4 = parseString(xml_authn_signed_4)
-        ds_signature_4 = res_4.firstChild.firstChild.nextSibling.nextSibling
+        ds_signature_4 = res_4.firstChild.firstChild.nextSibling.nextSibling.nextSibling
         self.assertIn('ds:Signature', ds_signature_4.tagName)
 
         xml_authn_signed_5 = compat.to_string(OneLogin_Saml2_Utils.add_sign(xml_authn_etree, key, cert))
         self.assertIn('<ds:SignatureValue>', xml_authn_signed_5)
         res_5 = parseString(xml_authn_signed_5)
-        ds_signature_5 = res_5.firstChild.firstChild.nextSibling.nextSibling
+        ds_signature_5 = res_5.firstChild.firstChild.nextSibling.nextSibling.nextSibling
         self.assertIn('ds:Signature', ds_signature_5.tagName)
 
         xml_logout_req = b64decode(self.file_contents(join(self.data_path, 'logout_requests', 'logout_request.xml.base64')))
         xml_logout_req_signed = compat.to_string(OneLogin_Saml2_Utils.add_sign(xml_logout_req, key, cert))
         self.assertIn('<ds:SignatureValue>', xml_logout_req_signed)
         res_6 = parseString(xml_logout_req_signed)
-        ds_signature_6 = res_6.firstChild.firstChild.nextSibling.nextSibling
+        ds_signature_6 = res_6.firstChild.firstChild.nextSibling.nextSibling.nextSibling
         self.assertIn('ds:Signature', ds_signature_6.tagName)
 
         xml_logout_res = b64decode(self.file_contents(join(self.data_path, 'logout_responses', 'logout_response.xml.base64')))
         xml_logout_res_signed = compat.to_string(OneLogin_Saml2_Utils.add_sign(xml_logout_res, key, cert))
         self.assertIn('<ds:SignatureValue>', xml_logout_res_signed)
         res_7 = parseString(xml_logout_res_signed)
-        ds_signature_7 = res_7.firstChild.firstChild.nextSibling.nextSibling
+        ds_signature_7 = res_7.firstChild.firstChild.nextSibling.nextSibling.nextSibling
         self.assertIn('ds:Signature', ds_signature_7.tagName)
 
         xml_metadata = self.file_contents(join(self.data_path, 'metadata', 'metadata_settings1.xml'))

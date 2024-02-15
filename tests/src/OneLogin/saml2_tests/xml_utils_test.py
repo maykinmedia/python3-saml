@@ -193,9 +193,9 @@ class TestOneLoginSaml2Xml(unittest.TestCase):
         xml_with_soap = OneLogin_Saml2_XML.add_soap_envelope(xml)
 
         expected_xml = (
-                '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
-                "<soap:Body>" + xml + "</soap:Body>"
-                                      "</soap:Envelope>"
+            '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
+            "<soap:Body>" + xml + "</soap:Body>"
+                                  "</soap:Envelope>"
         )
 
         self.assertEqual(xml_with_soap.replace("\n", "").strip(), expected_xml)

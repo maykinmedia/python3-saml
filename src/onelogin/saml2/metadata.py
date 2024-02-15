@@ -172,10 +172,10 @@ class OneLogin_Saml2_Metadata(object):
 
             if 'responseUrl' in sp['singleLogoutService']:
                 sls_logout_response = OneLogin_Saml2_Templates.MD_SLS % \
-                     {
-                         'binding': sp['singleLogoutService']['responseBinding'],
-                         'location': sp['singleLogoutService']['responseUrl'],
-                     }
+                    {
+                        'binding': sp['singleLogoutService']['responseBinding'],
+                        'location': sp['singleLogoutService']['responseUrl'],
+                    }
                 sls += sls_logout_response
 
         str_authnsign = 'true' if authnsign else 'false'

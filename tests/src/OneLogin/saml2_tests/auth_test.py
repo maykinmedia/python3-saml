@@ -1612,7 +1612,7 @@ class OneLogin_Saml2_Auth_Test(unittest.TestCase):
         )
 
         self.assertIn(
-            f'<samlp:Artifact>{saml_art}</samlp:Artifact>',
+            '<samlp:Artifact>{}</samlp:Artifact>'.format(saml_art),
             responses.calls[0].request.body.decode('utf-8')
         )
 

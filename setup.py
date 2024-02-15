@@ -3,11 +3,15 @@
 
 from setuptools import setup
 
+#
+# NOTE - this file appears to be obsoleted by pyproject.toml. It's still present in
+# upstream too, but appears to be ignored due to poetry being used as build tool.
+#
 
 setup(
     name='maykin-python3-saml',
-    version='1.14.0.post0',  # can't use PEP 440 local versions with PyPI
-    description='Onelogin Python Toolkit. Add SAML support to your Python software using this library',
+    version='1.16.0.post0',  # can't use PEP 440 local versions with PyPI
+    description='Saml Python Toolkit. Add SAML support to your Python software using this library',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
@@ -37,7 +41,6 @@ setup(
         'lxml>=4.7.1',
         'isodate>=0.6.1',
         'xmlsec>=1.3.9',
-        'defusedxml>=0.5.0',
         'requests>=2.24.0',
         'pyOpenSSL>=19.1.0',
     ],
