@@ -2,10 +2,8 @@
 
 """ OneLogin_Saml2_Error class
 
-Copyright (c) 2010-2021 OneLogin, Inc.
-MIT License
 
-Error class of OneLogin's Python Toolkit.
+Error class of SAML Python Toolkit.
 
 Defines common Error codes and has a custom initializator.
 
@@ -110,7 +108,9 @@ class OneLogin_Saml2_ValidationError(Exception):
     WRONG_NUMBER_OF_SIGNATURES = 43
     RESPONSE_EXPIRED = 44
     AUTHN_CONTEXT_MISMATCH = 45
-    STATUS_CODE_AUTHNFAILED = 46
+    DEPRECATED_SIGNATURE_METHOD = 46
+    DEPRECATED_DIGEST_METHOD = 47
+    STATUS_CODE_AUTHNFAILED = 48
 
     def __init__(self, message, code=0, errors=None):
         """

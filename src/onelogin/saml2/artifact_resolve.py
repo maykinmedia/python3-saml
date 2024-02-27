@@ -92,7 +92,10 @@ class Artifact_Resolve_Request:
 
     def send(self):
         security_data = self._settings.get_security_data()
-        headers = {"content-type": "application/soap+xml"}
+        # TODO: checkout `resolveArtifactBindingContentType` setting? see
+        # diff with a23d86c2cc11c8d06412d5041b1aab6011f2533c
+        idp_data = self._settings.get_idp_data()
+        headers = {'content-type': idp_data['resolveArtifactBindingContentType']}
         url = self.soap_endpoint['url']
         data = self.get_soap_request()
 

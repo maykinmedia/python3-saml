@@ -2,10 +2,8 @@
 
 """ OneLogin_Saml2_Utils class
 
-Copyright (c) 2010-2021 OneLogin, Inc.
-MIT License
 
-Auxiliary class of OneLogin's Python Toolkit.
+Auxiliary class of SAML Python Toolkit.
 
 """
 
@@ -743,7 +741,7 @@ class OneLogin_Saml2_Utils(object):
         return compat.to_string(OneLogin_Saml2_XML.to_string(enc_data))
 
     @staticmethod
-    def add_sign(xml, key, cert, debug=False, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA1, digest_algorithm=OneLogin_Saml2_Constants.SHA1, key_passphrase=None):
+    def add_sign(xml, key, cert, debug=False, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA256, digest_algorithm=OneLogin_Saml2_Constants.SHA256, key_passphrase=None):
         """
         Adds signature key and senders certificate to an element (Message or
         Assertion).
@@ -781,7 +779,7 @@ class OneLogin_Saml2_Utils(object):
             OneLogin_Saml2_Constants.RSA_SHA384: xmlsec.Transform.RSA_SHA384,
             OneLogin_Saml2_Constants.RSA_SHA512: xmlsec.Transform.RSA_SHA512
         }
-        sign_algorithm_transform = sign_algorithm_transform_map.get(sign_algorithm, xmlsec.Transform.RSA_SHA1)
+        sign_algorithm_transform = sign_algorithm_transform_map.get(sign_algorithm, xmlsec.Transform.RSA_SHA256)
 
         signature = xmlsec.template.create(elem, xmlsec.Transform.EXCL_C14N, sign_algorithm_transform, ns='ds')
 
@@ -816,7 +814,7 @@ class OneLogin_Saml2_Utils(object):
             OneLogin_Saml2_Constants.SHA384: xmlsec.Transform.SHA384,
             OneLogin_Saml2_Constants.SHA512: xmlsec.Transform.SHA512
         }
-        digest_algorithm_transform = digest_algorithm_transform_map.get(digest_algorithm, xmlsec.Transform.SHA1)
+        digest_algorithm_transform = digest_algorithm_transform_map.get(digest_algorithm, xmlsec.Transform.SHA256)
 
         ref = xmlsec.template.add_reference(signature, digest_algorithm_transform, uri=elem_id)
         xmlsec.template.add_transform(ref, xmlsec.Transform.ENVELOPED)
@@ -949,7 +947,7 @@ class OneLogin_Saml2_Utils(object):
 
         if len(signature_nodes) > 0:
             for signature_node in signature_nodes:
-                # Raises expection if invalid
+                # Raises exception if invalid
                 OneLogin_Saml2_Utils.validate_node_sign(signature_node, elem, cert, fingerprint, fingerprintalg, validatecert, debug, raise_exceptions=True)
             return True
         else:
@@ -1029,7 +1027,7 @@ class OneLogin_Saml2_Utils(object):
         return True
 
     @staticmethod
-    def sign_binary(msg, key, algorithm=xmlsec.Transform.RSA_SHA1, debug=False, key_passphrase=None):
+    def sign_binary(msg, key, algorithm=xmlsec.Transform.RSA_SHA256, debug=False, key_passphrase=None):
         """
         Sign binary message
 
@@ -1055,7 +1053,7 @@ class OneLogin_Saml2_Utils(object):
         return dsig_ctx.sign_binary(compat.to_bytes(msg), algorithm)
 
     @staticmethod
-    def validate_binary_sign(signed_query, signature, cert=None, algorithm=OneLogin_Saml2_Constants.RSA_SHA1, debug=False):
+    def validate_binary_sign(signed_query, signature, cert=None, algorithm=OneLogin_Saml2_Constants.RSA_SHA256, debug=False):
         """
         Validates signed binary data (Used to validate GET Signature).
 
@@ -1087,7 +1085,7 @@ class OneLogin_Saml2_Utils(object):
                 OneLogin_Saml2_Constants.RSA_SHA384: xmlsec.Transform.RSA_SHA384,
                 OneLogin_Saml2_Constants.RSA_SHA512: xmlsec.Transform.RSA_SHA512
             }
-            sign_algorithm_transform = sign_algorithm_transform_map.get(algorithm, xmlsec.Transform.RSA_SHA1)
+            sign_algorithm_transform = sign_algorithm_transform_map.get(algorithm, xmlsec.Transform.RSA_SHA256)
 
             dsig_ctx.verify_binary(compat.to_bytes(signed_query),
                                    sign_algorithm_transform,

@@ -2,10 +2,8 @@
 
 """ OneLogin_Saml2_Constants class
 
-Copyright (c) 2010-2021 OneLogin, Inc.
-MIT License
 
-Constants class of OneLogin's Python Toolkit.
+Constants class of SAML Python Toolkit.
 
 """
 
@@ -14,7 +12,7 @@ class OneLogin_Saml2_Constants(object):
     """
 
     This class defines all the constants that will be used
-    in the OneLogin's Python Toolkit.
+    in the SAML Python Toolkit.
 
     """
 
@@ -117,3 +115,10 @@ class OneLogin_Saml2_Constants(object):
     AES256_CBC = 'http://www.w3.org/2001/04/xmlenc#aes256-cbc'
     RSA_1_5 = 'http://www.w3.org/2001/04/xmlenc#rsa-1_5'
     RSA_OAEP_MGF1P = 'http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p'
+
+    # Define here the deprecated algorithms
+    DEPRECATED_ALGORITHMS = [DSA_SHA1, RSA_SHA1, SHA1]
+
+    # XML Content types
+    SOAP_XML = "application/soap+xml"
+    TEXT_XML = "text/xml"

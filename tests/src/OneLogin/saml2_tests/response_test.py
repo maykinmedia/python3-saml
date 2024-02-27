@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010-2021 OneLogin, Inc.
-# MIT License
 
 from base64 import b64decode, b64encode
 from lxml import etree
@@ -773,6 +771,22 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         response_6 = OneLogin_Saml2_Response(settings, xml_5)
         self.assertEqual(expected_attributes, response_6.get_friendlyname_attributes())
 
+    def testGetEncryptedAttributes(self):
+        """
+        Tests the get_attributes method of the OneLogin_Saml2_Response with an encrypted response
+        """
+        settings = OneLogin_Saml2_Settings(self.loadSettingsJSON('settings8.json'))
+        xml = self.file_contents(join(self.data_path, 'responses', 'signed_message_encrypted_assertion2.xml.base64'))
+        response = OneLogin_Saml2_Response(settings, xml)
+        self.assertEqual({
+            'uid': ['smartin'],
+            'mail': ['smartin@yaco.es'],
+            'cn': ['Sixto3'],
+            'sn': ['Martin2'],
+            'phone': [],
+            'eduPersonAffiliation': ['user', 'admin'],
+        }, response.get_attributes())
+
     def testGetNestedNameIDAttributes(self):
         """
         Tests the getAttributes method of the OneLogin_Saml2_Response with nested
@@ -931,9 +945,10 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         response_4 = OneLogin_Saml2_Response(settings, xml_4)
         self.assertFalse(response_4.validate_timestamps())
 
-        xml_5 = self.file_contents(join(self.data_path, 'responses', 'invalids', 'not_before_failed.xml.base64'))
-        response_5 = OneLogin_Saml2_Response(settings, xml_5)
-        self.assertFalse(response_5.validate_timestamps())
+        with freeze_time("2024-01-01T12:00:00Z"):
+            xml_5 = self.file_contents(join(self.data_path, 'responses', 'invalids', 'not_before_failed.xml.base64'))
+            response_5 = OneLogin_Saml2_Response(settings, xml_5)
+            self.assertFalse(response_5.validate_timestamps())
 
     def testValidateVersion(self):
         """
@@ -1043,6 +1058,19 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         xml = self.file_contents(join(self.data_path, 'responses', 'invalids', 'no_key.xml.base64'))
         response = OneLogin_Saml2_Response(settings, xml)
         with self.assertRaisesRegex(Exception, 'Signature validation failed. SAML Response rejected'):
+            response.is_valid(self.get_request_data(), raise_exceptions=True)
+
+    def testIsInValidDeprecatedAlgorithm(self):
+        """
+        Tests the is_valid method of the OneLogin_Saml2_Response
+        Case Deprecated algorithm used
+        """
+        settings_dict = self.loadSettingsJSON()
+        settings_dict['security']['rejectDeprecatedAlgorithm'] = True
+        settings = OneLogin_Saml2_Settings(settings_dict)
+        xml = self.file_contents(join(self.data_path, 'responses', 'valid_response.xml.base64'))
+        response = OneLogin_Saml2_Response(settings, xml)
+        with self.assertRaisesRegex(Exception, 'Deprecated signature algorithm found: http://www.w3.org/2000/09/xmldsig#rsa-sha1'):
             response.is_valid(self.get_request_data(), raise_exceptions=True)
 
     def testIsInValidMultipleAssertions(self):
@@ -1273,7 +1301,7 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
     def testDatetimeWithMiliseconds(self):
         """
         Tests the is_valid method of the OneLogin_Saml2_Response class
-        Somtimes IdPs uses datetimes with miliseconds, this
+        Sometimes IdPs uses datetimes with miliseconds, this
         test is to verify that the toolkit supports them
         """
         settings = OneLogin_Saml2_Settings(self.loadSettingsJSON())
@@ -1881,7 +1909,7 @@ class OneLogin_Saml2_Response_Test(unittest.TestCase):
         settings = OneLogin_Saml2_Settings(self.loadSettingsJSON())
         xml = self.file_contents(join(self.data_path, 'responses', 'signed_message_response.xml.base64'))
         response = OneLogin_Saml2_Response(settings, xml)
-        self.assertEqual(response.get_id(), 'pfxc3d2b542-0f7e-8767-8e87-5b0dc6913375')
+        self.assertEqual(response.get_id(), 'pfxf209cd60-f060-722b-02e9-4850ac5a2e41')
 
     def testGetAssertionId(self):
         """

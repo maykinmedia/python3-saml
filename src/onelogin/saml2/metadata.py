@@ -2,16 +2,13 @@
 
 """ OneLoginSaml2Metadata class
 
-Copyright (c) 2010-2021 OneLogin, Inc.
-MIT License
 
-Metadata class of OneLogin's Python Toolkit.
+Metadata class of SAML Python Toolkit.
 
 """
 
 from time import gmtime, strftime, time
 from datetime import datetime
-from OpenSSL import crypto
 import binascii
 
 from onelogin.saml2 import compat
@@ -19,6 +16,8 @@ from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
 from onelogin.saml2.xml_templates import OneLogin_Saml2_Templates
 from onelogin.saml2.xml_utils import OneLogin_Saml2_XML
+
+from .crypto_utils import load_pem_certificate
 
 try:
     basestring
@@ -163,12 +162,22 @@ class OneLogin_Saml2_Metadata(object):
             organization = {}
 
         sls = ''
-        if 'singleLogoutService' in sp and 'url' in sp['singleLogoutService']:
-            sls = OneLogin_Saml2_Templates.MD_SLS % \
-                {
-                    'binding': sp['singleLogoutService']['binding'],
-                    'location': sp['singleLogoutService']['url'],
-                }
+        if 'singleLogoutService' in sp:
+            if 'url' in sp['singleLogoutService']:
+                sls_logout_request = OneLogin_Saml2_Templates.MD_SLS % \
+                    {
+                        'binding': sp['singleLogoutService']['binding'],
+                        'location': sp['singleLogoutService']['url'],
+                    }
+                sls += sls_logout_request
+
+            if 'responseUrl' in sp['singleLogoutService']:
+                sls_logout_response = OneLogin_Saml2_Templates.MD_SLS % \
+                    {
+                        'binding': sp['singleLogoutService']['responseBinding'],
+                        'location': sp['singleLogoutService']['responseUrl'],
+                    }
+                sls += sls_logout_response
 
         str_authnsign = 'true' if authnsign else 'false'
         str_wsign = 'true' if wsign else 'false'
@@ -219,7 +228,7 @@ class OneLogin_Saml2_Metadata(object):
         return metadata
 
     @staticmethod
-    def sign_metadata(metadata, key, cert, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA1, digest_algorithm=OneLogin_Saml2_Constants.SHA1, key_passphrase=None):
+    def sign_metadata(metadata, key, cert, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA256, digest_algorithm=OneLogin_Saml2_Constants.SHA256, key_passphrase=None):
         """
         Signs the metadata with the key/cert provided
 
@@ -244,15 +253,14 @@ class OneLogin_Saml2_Metadata(object):
         return OneLogin_Saml2_Utils.add_sign(metadata, key, cert, False, sign_algorithm, digest_algorithm, key_passphrase=key_passphrase)
 
     @staticmethod
-    def _add_x509_key_descriptors(root, cert, use=None):
+    def _add_x509_key_descriptors(root, cert: str, use=None):
         key_descriptor = OneLogin_Saml2_XML.make_child(root, '{%s}KeyDescriptor' % OneLogin_Saml2_Constants.NS_MD)
         root.remove(key_descriptor)
         root.insert(0, key_descriptor)
         key_info = OneLogin_Saml2_XML.make_child(key_descriptor, '{%s}KeyInfo' % OneLogin_Saml2_Constants.NS_DS)
 
         key_name = OneLogin_Saml2_XML.make_child(key_info, '{%s}KeyName' % OneLogin_Saml2_Constants.NS_DS)
-        x509_certificate = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
-        certificate = x509_certificate.to_cryptography()
+        certificate = load_pem_certificate(cert)
         key_name.text = binascii.hexlify(
             certificate.fingerprint(certificate.signature_hash_algorithm)
         ).decode("ascii")

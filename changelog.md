@@ -1,4 +1,33 @@
 # python3-saml changelog
+### 1.16.0 (Oct 9, 2023)
+- [#364](https://github.com/SAML-Toolkits/python3-saml/commit/d1bfaeb17a786735827b8252b91deafde29dabd8) Improve get_metadata method from Parser, allowing to set headers
+- Fix WantAuthnRequestsSigned parser
+- Fix expired payloads used on tests
+- Updated content from docs folder
+
+### 1.15.0 (Dec 27, 2022)
+- [#317](https://github.com/SAML-Toolkits/python3-saml/pull/317) Handle unicode characters gracefully in python 2
+- [#338](https://github.com/SAML-Toolkits/python3-saml/pull/338) Fix WantAuthnRequestsSigned parser
+- [#339](https://github.com/SAML-Toolkits/python3-saml/pull/339) Add Poetry support
+- Remove version restriction on lxml dependency
+- Updated Django demo to 4.X (only py3 compatible)
+- Updated Travis file. Forced lxml to be installed using no-validate_binary
+- Removed references to OneLogin from documentation
+
+### 1.14.0 (Feb 18, 2022)
+- [#297](https://github.com/onelogin/python3-saml/pull/297) Don't require yanked version of lxml.
+- [#298](https://github.com/onelogin/python3-saml/pull/298) Add support for python 3.10 and cleanup the GHA.
+- [#299](https://github.com/onelogin/python3-saml/pull/299) Remove stats from coveralls removed as they are no longer maintained.
+
+### 1.13.0 (Jan 28, 2022)
+- [#296](https://github.com/onelogin/python3-saml/pull/296) Add rejectDeprecatedAlgorithm settings in order to be able reject messages signed with deprecated algorithms.
+- Set sha256 and rsa-sha256 as default algorithms
+- [#288](https://github.com/onelogin/python3-saml/pull/288) Support building a LogoutResponse with non-success status
+- Added warning about Open Redirect and Reply attacks
+- [##274](https://github.com/onelogin/python3-saml/pull/274) Replace double-underscored names with single underscores
+- Add at OneLogin_Saml2_Auth get_last_assertion_issue_instant() and get_last_response_in_response_to() methods
+- Upgrade dependencies
+
 ### 1.12.0 (Aug 13, 2021)
 * [#276](https://github.com/onelogin/python3-saml/pull/276) Deprecate server_port from request data dictionary
 
@@ -78,7 +107,7 @@
 ### 1.3.0 (Sep 15, 2017)
 * Improve decrypt method, Add an option to decrypt an element in place or copy it before decryption.
 * [#63](https://github.com/onelogin/python3-saml/pull/63) Be able to get at the auth object the last processed ID (response/assertion) and the last generated ID, as well as the NotOnOrAfter value of the valid SubjectConfirmationData in the processed SAMLResponse
-* On a LogoutRequest if the NameIdFormat is entity, NameQualifier and SPNameQualifier will be ommited. If the NameIdFormat is not entity and a NameQualifier is provided, then the SPNameQualifier will be also added.
+* On a LogoutRequest if the NameIdFormat is entity, NameQualifier and SPNameQualifier will be omitted. If the NameIdFormat is not entity and a NameQualifier is provided, then the SPNameQualifier will be also added.
 * Reset errorReason attribute of the auth object before each Process method
 * [#65](https://github.com/onelogin/python3-saml/pull/65) Fix issue on getting multiple certs when only sign or encryption certs
 

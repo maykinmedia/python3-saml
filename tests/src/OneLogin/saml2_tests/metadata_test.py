@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010-2021 OneLogin, Inc.
-# MIT License
 
 import json
-from os.path import dirname, join, exists
-from time import strftime
-from datetime import datetime
+import re
 import unittest
+from datetime import datetime
+from os.path import dirname, exists, join
+from time import strftime
 
 from onelogin.saml2 import compat
+from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from onelogin.saml2.metadata import OneLogin_Saml2_Metadata
 from onelogin.saml2.settings import OneLogin_Saml2_Settings
-from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
 from onelogin.saml2.xml_utils import OneLogin_Saml2_XML
 
@@ -253,8 +252,8 @@ class OneLogin_Saml2_Metadata_Test(unittest.TestCase):
         self.assertIn('<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>', signed_metadata)
 
         self.assertIn('<ds:SignedInfo>\n<ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>', signed_metadata)
-        self.assertIn('<ds:SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>', signed_metadata)
-        self.assertIn('<ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>', signed_metadata)
+        self.assertIn('<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>', signed_metadata)
+        self.assertIn('<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>', signed_metadata)
         self.assertIn('<ds:Reference', signed_metadata)
         self.assertIn('<ds:KeyInfo>\n<ds:X509Data>\n<ds:X509Certificate>', signed_metadata)
 
@@ -337,3 +336,23 @@ class OneLogin_Saml2_Metadata_Test(unittest.TestCase):
             OneLogin_Saml2_Metadata.add_x509_key_descriptors(unparsed_metadata, cert)
             exception = context.exception
             self.assertIn("Error parsing metadata", str(exception))
+
+    def test_two_single_logout_services(self):
+        settings = OneLogin_Saml2_Settings(self.loadSettingsJSON(filename='settings15.json'))
+        sp_data = settings.get_sp_data()
+        security = settings.get_security_data()
+        metadata = OneLogin_Saml2_Metadata.builder(
+            sp_data,
+            security['authnRequestsSigned'],
+            security['wantAssertionsSigned'],
+        )
+
+        self.assertIsNotNone(metadata)
+
+        metadata_clean = re.sub(r"\s+", " ", metadata).replace("\n", "")
+
+        expected_slo = (
+            '<md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="http://stuff.com/endpoints/endpoints/sls-soap.php" /> '
+            '<md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="http://stuff.com/endpoints/endpoints/sls-redirect.php" />'
+        )
+        self.assertIn(expected_slo, metadata_clean)

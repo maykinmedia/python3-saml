@@ -3,18 +3,32 @@
 
 name: Python package
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+      - maykin
+  pull_request:
+    branches:
+      - master
+      - maykin
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  test_py3:
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6,3.7, 3.8,3.9]
-
+        python-version:
+          - "3.6"
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
@@ -27,19 +41,21 @@ jobs:
           ${{ runner.os }}-pip-
     - name: Install dependencies
       run: |
+        pip install -U setuptools
         sudo apt-get update -qq
         sudo apt-get install -qq swig python-dev libxml2-dev libxmlsec1-dev
         make install-req
         make install-test
     - name: Test
       run: make pytest
-  lint:
-    runs-on: ubuntu-latest
+  test_py2:
+    runs-on: ubuntu-20.04
+    container:
+      image: python:2.7.18-buster
+    strategy:
+      fail-fast: false
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
+    - uses: actions/checkout@v3
     - uses: actions/cache@v2
       with:
         path: ~/.cache/pip
@@ -48,11 +64,45 @@ jobs:
           ${{ runner.os }}-pip-
     - name: Install dependencies
       run: |
+        pip install -U setuptools
+        apt-get update -qq
+        apt-get install -qq swig python-dev libxml2-dev libxmlsec1-dev
+        make install-req
+        make install-test
+    - name: Test
+      continue-on-error: true
+      run: make pytest
+  lint:
+    runs-on: ubuntu-20.04
+    environment: CI
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v2
+      with:
+        python-version: "3.12"
+    - uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.py') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Install dependencies
+      run: |
+        pip install -U setuptools
         sudo apt-get update -qq
         sudo apt-get install -qq swig python-dev libxml2-dev libxmlsec1-dev
+        pip install --force-reinstall --no-binary lxml lxml
         make install-req
         make install-test
     - name: Run linters
       run: |
         make pycodestyle
         make flake8
+    # - name: Run coveralls
+    #   env:
+    #     COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+    #   run: |
+    #     pip install coveralls
+    #     coverage run  setup.py test
+    #     coverage report -m
+    #     coveralls

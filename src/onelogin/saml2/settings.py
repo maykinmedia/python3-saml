@@ -307,10 +307,13 @@ class OneLogin_Saml2_Settings(object):
         self._security.setdefault('wantNameIdEncrypted', False)
 
         # Signature Algorithm
-        self._security.setdefault('signatureAlgorithm', OneLogin_Saml2_Constants.RSA_SHA1)
+        self._security.setdefault('signatureAlgorithm', OneLogin_Saml2_Constants.RSA_SHA256)
 
         # Digest Algorithm
-        self._security.setdefault('digestAlgorithm', OneLogin_Saml2_Constants.SHA1)
+        self._security.setdefault('digestAlgorithm', OneLogin_Saml2_Constants.SHA256)
+
+        # Reject Deprecated Algorithms
+        self._security.setdefault('rejectDeprecatedAlgorithm', False)
 
         # AttributeStatement required by default
         self._security.setdefault('wantAttributeStatement', True)
@@ -321,6 +324,7 @@ class OneLogin_Saml2_Settings(object):
         self._idp.setdefault('x509cert', '')
         self._idp.setdefault('certFingerprint', '')
         self._idp.setdefault('certFingerprintAlgorithm', 'sha1')
+        self._idp.setdefault('resolveArtifactBindingContentType', OneLogin_Saml2_Constants.SOAP_XML)
 
         self._sp.setdefault('x509cert', '')
         self._sp.setdefault('privateKey', '')
@@ -401,7 +405,7 @@ class OneLogin_Saml2_Settings(object):
                     nameid_enc = bool(security.get('nameIdEncrypted'))
 
                     if (want_assert_sign or want_mes_signed) and \
-                            not(exists_x509 or exists_fingerprint or exists_multix509sign):
+                            not (exists_x509 or exists_fingerprint or exists_multix509sign):
                         errors.append('idp_cert_or_fingerprint_not_found_and_required')
                     if nameid_enc and not (exists_x509 or exists_multix509enc):
                         errors.append('idp_cert_not_found_and_required')

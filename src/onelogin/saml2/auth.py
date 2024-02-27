@@ -2,10 +2,8 @@
 
 """ OneLogin_Saml2_Auth class
 
-Copyright (c) 2010-2021 OneLogin, Inc.
-MIT License
 
-Main class of OneLogin's Python Toolkit.
+Main class of SAML Python Toolkit.
 
 Initializes the SP SAML instance
 
@@ -82,6 +80,7 @@ class OneLogin_Saml2_Auth(object):
         self._last_authn_contexts = []
         self._last_request = None
         self._last_response = None
+        self._last_response_in_response_to = None
         self._last_assertion_not_on_or_after = None
 
     def get_settings(self):
@@ -116,6 +115,7 @@ class OneLogin_Saml2_Auth(object):
         self._last_assertion_issue_instant = response.get_assertion_issue_instant()
         self._last_authn_contexts = response.get_authn_contexts()
         self._authenticated = True
+        self._last_response_in_response_to = response.get_in_response_to()
         self._last_assertion_not_on_or_after = response.get_assertion_not_on_or_after()
 
     def artifact_resolve(self, saml_art):
@@ -235,7 +235,6 @@ class OneLogin_Saml2_Auth(object):
                 self._errors.append('Signature validation failed. Logout Response rejected')
             elif not logout_response.is_valid(self._request_data, request_id):
                 self._errors.append('invalid_logout_response')
-                self._error_reason = logout_response.get_error()
             elif logout_response.get_status() != OneLogin_Saml2_Constants.STATUS_SUCCESS:
                 self._errors.append('logout_not_success')
             else:
@@ -251,7 +250,6 @@ class OneLogin_Saml2_Auth(object):
                 self._errors.append('Signature validation failed. Logout Request rejected')
             elif not logout_request.is_valid(self._request_data):
                 self._errors.append('invalid_logout_request')
-                self._error_reason = logout_request.get_error()
             else:
                 if not keep_local_session:
                     OneLogin_Saml2_Utils.delete_local_session(delete_session_cb)
@@ -638,7 +636,7 @@ class OneLogin_Saml2_Auth(object):
         """
         return self._settings.get_idp_slo_response_url()
 
-    def add_request_signature(self, request_data, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA1):
+    def add_request_signature(self, request_data, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA256):
         """
         Builds the Signature of the SAML Request.
 
@@ -650,7 +648,7 @@ class OneLogin_Saml2_Auth(object):
         """
         return self._build_signature(request_data, 'SAMLRequest', sign_algorithm)
 
-    def add_response_signature(self, response_data, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA1):
+    def add_response_signature(self, response_data, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA256):
         """
         Builds the Signature of the SAML Response.
         :param response_data: The Response parameters
@@ -703,7 +701,7 @@ class OneLogin_Saml2_Auth(object):
         sign_data.append('SigAlg=%s' % OneLogin_Saml2_Utils.escape_url(algorithm, lowercase_urlencoding))
         return '&'.join(sign_data)
 
-    def _build_signature(self, data, saml_type, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA1):
+    def _build_signature(self, data, saml_type, sign_algorithm=OneLogin_Saml2_Constants.RSA_SHA256):
         """
         Builds the Signature
         :param data: The Request data
@@ -736,7 +734,7 @@ class OneLogin_Saml2_Auth(object):
             OneLogin_Saml2_Constants.RSA_SHA384: xmlsec.Transform.RSA_SHA384,
             OneLogin_Saml2_Constants.RSA_SHA512: xmlsec.Transform.RSA_SHA512
         }
-        sign_algorithm_transform = sign_algorithm_transform_map.get(sign_algorithm, xmlsec.Transform.RSA_SHA1)
+        sign_algorithm_transform = sign_algorithm_transform_map.get(sign_algorithm, xmlsec.Transform.RSA_SHA256)
 
         signature = OneLogin_Saml2_Utils.sign_binary(
             msg, key,
@@ -812,6 +810,15 @@ class OneLogin_Saml2_Auth(object):
             sign_alg = data.get('SigAlg', OneLogin_Saml2_Constants.RSA_SHA1)
             if isinstance(sign_alg, bytes):
                 sign_alg = sign_alg.decode('utf8')
+
+            security = self._settings.get_security_data()
+            reject_deprecated_alg = security.get('rejectDeprecatedAlgorithm', False)
+            if reject_deprecated_alg:
+                if sign_alg in OneLogin_Saml2_Constants.DEPRECATED_ALGORITHMS:
+                    raise OneLogin_Saml2_ValidationError(
+                        'Deprecated signature algorithm found: %s' % sign_alg,
+                        OneLogin_Saml2_ValidationError.DEPRECATED_SIGNATURE_METHOD
+                    )
 
             query_string = self._request_data.get('query_string')
             if query_string and self._request_data.get('validate_signature_from_qs'):

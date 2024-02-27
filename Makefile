@@ -11,8 +11,7 @@ TESTS=tests/src/OneLogin/saml2_tests
 SOURCES=$(MAIN_SOURCE) $(DEMOS) $(TESTS)
 
 install-req:
-	$(PIP) install --upgrade 'setuptools<45.0.0'
-	$(PIP) install .
+	$(PIP) install --no-binary lxml .
 
 install-test:
 	$(PIP) install -e ".[test]" 

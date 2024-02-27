@@ -2,10 +2,8 @@
 
 """ OneLogin_Saml2_XML class
 
-Copyright (c) 2010-2021 OneLogin, Inc.
-MIT License
 
-Auxiliary class of OneLogin's Python Toolkit.
+Auxiliary class of SAML Python Toolkit.
 
 """
 
@@ -14,6 +12,7 @@ from lxml import etree
 from onelogin.saml2 import compat
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from onelogin.saml2.xmlparser import tostring, fromstring
+from onelogin.saml2.xml_templates import OneLogin_Saml2_Templates
 
 
 for prefix, url in OneLogin_Saml2_Constants.NSMAP.items():
@@ -175,3 +174,40 @@ class OneLogin_Saml2_XML(object):
         # Double check, the LXML Parser already removes comments
         etree.strip_tags(node, etree.Comment)
         return node.text
+
+    @staticmethod
+    def remove_soap_envelope(xml) -> etree.Element:
+        """
+        return xml inside SOAP Body
+
+        :param xml: is xml with SOAP envelope
+        """
+
+        soap_xml = OneLogin_Saml2_XML.to_etree(xml)
+
+        return OneLogin_Saml2_XML.query(soap_xml, "/soap:Envelope/soap:Body")[
+            0
+        ].getchildren()[0]
+
+    @staticmethod
+    def add_soap_envelope(xml: str) -> str:
+        """
+        wraps xml in the SOAP Envelope
+
+        :param xml: is xml which should be put in SOAP Envelope
+        """
+        return OneLogin_Saml2_Templates.SOAP_ENVELOPE % {"soap_body": xml}
+
+    @staticmethod
+    def generate_soap_fault_message(error_message: str, code="SOAP-ENV:Client") -> str:
+        """
+        Generates SOAP Fault message
+        """
+        fault = (
+            "<soap:Fault>"
+            "<faultcode>%(code)s</faultcode>"
+            "<faultstring>%(detail)s</faultstring>"
+            "</soap:Fault>"
+        ) % {"code": code, "detail": error_message}
+
+        return OneLogin_Saml2_Templates.SOAP_ENVELOPE % {"soap_body": fault}
