@@ -7,12 +7,7 @@ Metadata class of SAML Python Toolkit.
 
 from copy import deepcopy
 
-try:
-    import urllib.request as urllib2
-except ImportError:
-    import urllib2
-
-import ssl
+import requests
 
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from onelogin.saml2.xml_utils import OneLogin_Saml2_XML
@@ -46,16 +41,12 @@ class OneLogin_Saml2_IdPMetadataParser(object):
         """
         valid = False
 
-        request = urllib2.Request(url, headers=headers or {})
-
-        if validate_cert:
-            response = urllib2.urlopen(request, timeout=timeout)
-        else:
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            response = urllib2.urlopen(request, context=ctx, timeout=timeout)
-        xml = response.read()
+        # MAYKIN: use requests to retrieve the metadata, so the CA bundle configured for
+        # requests can be used and self-signed/private root certificates still continue
+        # to work.
+        response = requests.get(url, headers=headers, verify=validate_cert, timeout=timeout)
+        response.raise_for_status()
+        xml = response.content
 
         if xml:
             try:

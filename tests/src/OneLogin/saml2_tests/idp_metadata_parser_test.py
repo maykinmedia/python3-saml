@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
 
-
-try:
-    from urllib.error import URLError
-except ImportError:
-    from urllib2 import URLError
-
 from copy import deepcopy
 import json
 from os.path import dirname, join, exists
 from lxml.etree import XMLSyntaxError
+from requests import RequestException
 import unittest
 
 from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
@@ -51,7 +46,7 @@ class OneLogin_Saml2_IdPMetadataParser_Test(unittest.TestCase):
         try:
             data = OneLogin_Saml2_IdPMetadataParser.get_metadata('https://idp.testshib.org/idp/shibboleth')
             self.assertTrue(data is not None and data is not {})
-        except URLError:
+        except RequestException:
             pass
 
     def testGetMetadataWithHeaders(self):
@@ -69,7 +64,7 @@ class OneLogin_Saml2_IdPMetadataParser_Test(unittest.TestCase):
 
         try:
             data = OneLogin_Saml2_IdPMetadataParser.parse_remote('https://idp.testshib.org/idp/shibboleth')
-        except URLError:
+        except RequestException:
             xml = self.file_contents(join(self.data_path, 'metadata', 'testshib-providers.xml'))
             data = OneLogin_Saml2_IdPMetadataParser.parse(xml)
 
@@ -172,7 +167,7 @@ class OneLogin_Saml2_IdPMetadataParser_Test(unittest.TestCase):
         try:
             xmldoc = OneLogin_Saml2_IdPMetadataParser.get_metadata(
                 'https://idp.testshib.org/idp/shibboleth')
-        except URLError:
+        except RequestException:
             xmldoc = self.file_contents(join(self.data_path, 'metadata', 'testshib-providers.xml'))
 
         # Parse, require SSO REDIRECT binding, implicitly.
@@ -215,7 +210,7 @@ class OneLogin_Saml2_IdPMetadataParser_Test(unittest.TestCase):
         try:
             xmldoc = OneLogin_Saml2_IdPMetadataParser.get_metadata(
                 'https://idp.testshib.org/idp/shibboleth')
-        except URLError:
+        except RequestException:
             xmldoc = self.file_contents(join(self.data_path, 'metadata', 'testshib-providers.xml'))
 
         # Parse, require POST binding.
