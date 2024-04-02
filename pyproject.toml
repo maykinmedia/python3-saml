@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "maykin-python3-saml"
-version = "1.16.0.post2"
+version = "1.16.1"
 description = "Saml Python Toolkit. Add SAML support to your Python software using this library"
 license = "Apache-2.0"
 authors = [
