@@ -113,6 +113,7 @@ class Artifact_Resolve_Request:
             url=url,
             data=data,
             headers=headers,
+            timeout=60
         )
 
     def get_id(self):
